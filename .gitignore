@@ -1,0 +1,12 @@
+# Data (tải lại bằng scripts/download_data.py)
+data/raw/
+data/processed/
+models/*.joblib
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.streamlit/secrets.toml
