@@ -2,7 +2,7 @@
 Module dùng chung cho phần gom cụm (TV2 - Clustering).
 
 Chức năng chính:
-1. Đọc dữ liệu đã chuẩn hóa từ TV1 (hoặc tạo dữ liệu giả lập để test khung khi chưa có data thật).
+1. Đọc dữ liệu đã chuẩn hóa từ TV1 (X_scaled.csv và customers_features.csv).
 2. Cung cấp hàm fit 3 thuật toán: K-Means, Hierarchical (Agglomerative), DBSCAN.
 3. Chạy lưới tham số (ParameterGrid) và chấm các chỉ số nội bộ (Silhouette, Davies-Bouldin, Calinski-Harabasz).
 4. Lưu bảng kết quả tinh chỉnh, file nhãn labels.csv cho TV3 và model kmeans.joblib cho TV4.
@@ -11,143 +11,90 @@ Chức năng chính:
 from __future__ import annotations
 
 import time
+from os import getenv
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Callable
 
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.cluster import DBSCAN, AgglomerativeClustering, KMeans
-from sklearn.datasets import make_blobs
 from sklearn.metrics import (
     calinski_harabasz_score,
     davies_bouldin_score,
     silhouette_score,
 )
-from sklearn.model_selection import ParameterGrid
-from sklearn.preprocessing import RobustScaler
+from sklearn.model_selection import KFold, ParameterGrid
 
-# Cố định seed theo quy ước của nhóm để kết quả tái lập được trên mọi máy
+from preprocessing.preprocess import (
+    FEATURE_COLUMNS,
+    fit_transform_features,
+    transform_features,
+)
+
 RANDOM_STATE = 42
 
-# Định nghĩa các đường dẫn chuẩn theo cấu trúc thư mục repo
 CLUSTERING_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CLUSTERING_DIR.parent
-DEFAULT_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "X_scaled.csv"
+DEFAULT_DATA_DIR = PROJECT_ROOT / "data" / "processed"
+DATA_DIR = PROJECT_ROOT / Path(DEFAULT_DATA_DIR).expanduser()
+DEFAULT_DATA_PATH = DATA_DIR / "X_scaled.csv"
+RAW_FEATURES_PATH = DEFAULT_DATA_PATH.with_name("customers_features.csv")
 RESULTS_DIR = CLUSTERING_DIR / "results"
 MODELS_DIR = PROJECT_ROOT / "models"
-
-# Danh sách đặc trưng dự kiến theo preprocessing/README.md (chỉ dùng cho dữ liệu giả lập)
-DEFAULT_FEATURE_NAMES = [
-    "Recency",
-    "Frequency",
-    "Monetary",
-    "AvgOrderValue",
-    "UniqueProducts",
-    "AvgBasketSize",
-    "Tenure",
-    "CancelRate",
-]
+CUSTOMER_ID = "Customer ID"
 
 
-def make_mock_data(
-    n_samples: int = 1200,
-    n_features: int = 8,
-    n_outliers: int = 40,
-    random_state: int = RANDOM_STATE,
-) -> tuple[pd.Series, pd.DataFrame]:
-    """
-    Tạo dữ liệu giả lập đã chuẩn hóa (gồm 4 cụm + một ít điểm ngoại biên)
-    để chạy thử toàn bộ notebook trong thời gian chờ TV1 bàn giao X_scaled.csv.
-    """
-    rng = np.random.default_rng(random_state)
-
-    # Tạo 4 cụm chính mô phỏng 4 phân khúc khách hàng
-    X_blobs, _ = make_blobs(
-        n_samples=n_samples - n_outliers,
-        n_features=n_features,
-        centers=4,
-        cluster_std=1.05,
-        center_box=(-6.0, 6.0),
-        random_state=random_state,
-    )
-
-    # Thêm một ít điểm ngoại biên rải xa tâm cụm để test khả năng lọc nhiễu của DBSCAN
-    X_outliers = rng.uniform(low=-10.0, high=10.0, size=(n_outliers, n_features))
-    X_raw = np.vstack([X_blobs, X_outliers])
-
-    # Xáo trộn thứ tự các dòng và chuẩn hóa bằng RobustScaler cho giống đầu ra của TV1
-    perm = rng.permutation(len(X_raw))
-    X_scaled = RobustScaler().fit_transform(X_raw[perm])
-
-    cols = (
-        DEFAULT_FEATURE_NAMES
-        if n_features == len(DEFAULT_FEATURE_NAMES)
-        else [f"feature_{i + 1}" for i in range(n_features)]
-    )
-    customer_ids = pd.Series(
-        np.arange(10001, 10001 + len(X_scaled)), name="Customer ID"
-    )
-    X_df = pd.DataFrame(X_scaled, columns=cols)
-    return customer_ids, X_df
+def _display_path(path: Path | str) -> str:
+    resolved = Path(path).resolve()
+    if resolved.is_relative_to(PROJECT_ROOT):
+        return resolved.relative_to(PROJECT_ROOT).as_posix()
+    return resolved.name
 
 
 def load_scaled_data(
     path: Path | str = DEFAULT_DATA_PATH,
-    allow_mock: bool = True,
-) -> tuple[pd.Series, pd.DataFrame, bool]:
+) -> tuple[pd.Series, pd.DataFrame]:
     """
     Đọc bảng đặc trưng đã chuẩn hóa X_scaled.csv do TV1 bàn giao.
 
     Trả về:
         customer_ids: Series chứa mã khách hàng (Customer ID).
         X_df: DataFrame chỉ gồm các cột đặc trưng dạng số để đưa vào mô hình.
-        is_mock: True nếu đang chạy dữ liệu giả lập, False nếu đọc từ file thật.
     """
     data_path = Path(path)
+    features = load_customer_features(data_path)
+    print(f"Đã đọc {len(features):,} khách hàng từ {_display_path(data_path)}")
+    customer_ids = features.index.to_series().reset_index(drop=True)
+    return customer_ids, features.reset_index(drop=True)
 
-    if not data_path.exists():
-        if not allow_mock:
-            raise FileNotFoundError(
-                f"Không tìm thấy dữ liệu tại '{data_path}'. "
-                "Hãy đặt file X_scaled.csv của TV1 vào đúng thư mục."
-            )
-        print(
-            f"[CẢNH BÁO] Chưa có file '{data_path}'.\n"
-            "-> Đang dùng DỮ LIỆU GIẢ LẬP để chạy thử khung. "
-            "Khi TV1 bàn giao X_scaled.csv, chỉ cần chạy lại (Restart & Run All)."
-        )
-        customer_ids, X_df = make_mock_data()
-        return customer_ids, X_df, True
 
-    df = pd.read_csv(data_path)
+def load_customer_features(path: Path | str) -> pd.DataFrame:
+    """Đọc bảng đặc trưng TV1 và đưa các biến về đúng thứ tự FEATURE_COLUMNS."""
+    if not Path(path).is_file():
+        raise FileNotFoundError(f"Không tìm thấy '{_display_path(path)}'. Kiểm tra tệp TV1.")
+    frame = pd.read_csv(path, dtype={CUSTOMER_ID: "string"})
+    customer_ids = frame[CUSTOMER_ID].str.strip()
+    features = frame.loc[:, FEATURE_COLUMNS]
+    return features.set_axis(pd.Index(customer_ids, name=CUSTOMER_ID))
 
-    # Linh hoạt nhận diện cột Customer ID (kể cả khi TV1 lưu dưới dạng index Unnamed: 0)
-    id_candidates = ["Customer ID", "CustomerID", "customer_id", "Unnamed: 0"]
-    id_col = next((col for col in id_candidates if col in df.columns), None)
 
-    if id_col is not None:
-        customer_ids = df[id_col].rename("Customer ID")
-        feature_df = df.drop(columns=[id_col])
-    else:
-        customer_ids = pd.Series(df.index, name="Customer ID")
-        feature_df = df
-
-    # Chỉ giữ các cột số để tránh lỗi nếu file có cột phụ dạng chữ
-    X_df = feature_df.select_dtypes(include=[np.number]).copy()
-    if X_df.empty:
-        raise ValueError(f"File '{data_path}' không có cột đặc trưng dạng số nào.")
-
-    if X_df.isna().any().any() or np.isinf(X_df.to_numpy()).any():
-        raise ValueError(
-            f"Dữ liệu '{data_path}' còn giá trị NaN hoặc Inf. Cần kiểm tra lại bước tiền xử lý."
-        )
-
-    print(
-        f"[OK] Đã đọc dữ liệu thật: {X_df.shape[0]} khách hàng, "
-        f"{X_df.shape[1]} đặc trưng ({list(X_df.columns)})."
-    )
-    return customer_ids, X_df, False
+def cross_validate_kmeans(features: pd.DataFrame, k_values: list[int]) -> pd.DataFrame:
+    """Đo lỗi gán tâm ngoài mẫu, fit bộ chuẩn hóa riêng trong mỗi fold train."""
+    folds = KFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+    records = []
+    for fold, (train_index, test_index) in enumerate(folds.split(features), start=1):
+        X_train, scaler = fit_transform_features(features.iloc[train_index])
+        X_test = transform_features(features.iloc[test_index], scaler)
+        for k in k_values:
+            model, _ = fit_kmeans(X_train, n_clusters=k)
+            records.append({
+                "fold": fold,
+                "n_clusters": k,
+                "test_wcss_per_customer": -model.score(X_test) / len(X_test),
+            })
+    return pd.DataFrame(records)
 
 
 def evaluate_clustering(
@@ -160,9 +107,6 @@ def evaluate_clustering(
     - Silhouette Score: càng gần 1 càng tốt (tách biệt rõ, gọn cụm).
     - Davies-Bouldin Index: càng nhỏ càng tốt (gần 0 là tốt).
     - Calinski-Harabasz Index: càng cao càng tốt.
-
-    Với DBSCAN, đặt ignore_noise=True để bỏ điểm nhiễu (nhãn -1) khi tính 3 chỉ số,
-    nhưng vẫn giữ lại tỷ lệ nhiễu (noise_ratio) trên toàn tập.
     """
     X_arr = np.asarray(X)
     labels_arr = np.asarray(labels)
@@ -178,27 +122,30 @@ def evaluate_clustering(
         X_eval = X_arr
         labels_eval = labels_arr
 
-    unique_clusters = set(labels_eval) - {-1}
-    n_clusters = len(unique_clusters)
+    _, cluster_sizes = np.unique(labels_arr[~noise_mask], return_counts=True)
+    n_clusters = len(cluster_sizes)
+    stats = {
+        "n_clusters": n_clusters,
+        "n_noise": int(noise_mask.sum()),
+        "noise_ratio": noise_ratio,
+        "min_cluster_size": int(cluster_sizes.min()) if n_clusters else 0,
+        "max_cluster_size": int(cluster_sizes.max()) if n_clusters else 0,
+    }
 
     # Các chỉ số nội bộ chỉ tính được khi có ít nhất 2 cụm và số điểm > số cụm
-    if n_clusters < 2 or len(labels_eval) <= n_clusters:
+    if n_clusters < 2 or len(labels_eval) <= len(np.unique(labels_eval)):
         return {
-            "n_clusters": n_clusters,
-            "noise_ratio": round(noise_ratio, 4),
+            **stats,
             "silhouette": np.nan,
             "davies_bouldin": np.nan,
             "calinski_harabasz": np.nan,
         }
 
     return {
-        "n_clusters": n_clusters,
-        "noise_ratio": round(noise_ratio, 4),
-        "silhouette": round(float(silhouette_score(X_eval, labels_eval)), 4),
-        "davies_bouldin": round(float(davies_bouldin_score(X_eval, labels_eval)), 4),
-        "calinski_harabasz": round(
-            float(calinski_harabasz_score(X_eval, labels_eval)), 2
-        ),
+        **stats,
+        "silhouette": float(silhouette_score(X_eval, labels_eval)),
+        "davies_bouldin": float(davies_bouldin_score(X_eval, labels_eval)),
+        "calinski_harabasz": float(calinski_harabasz_score(X_eval, labels_eval)),
     }
 
 
@@ -209,8 +156,8 @@ def run_grid_search(
     ignore_noise: bool = False,
 ) -> pd.DataFrame:
     """
-    Thay thế GridSearchCV (vốn dành cho học có giám sát) bằng vòng lặp ParameterGrid
-    kết hợp bộ chỉ số nội bộ để tinh chỉnh siêu tham số cho thuật toán gom cụm.
+    Quét tham số và tính các chỉ số nội bộ trên tập dữ liệu đem gom cụm.
+    Đánh giá K-fold cho K-means được thực hiện riêng trên các fold giữ lại.
     """
     records: list[dict[str, Any]] = []
 
@@ -225,7 +172,7 @@ def run_grid_search(
 
         # Nếu là KMeans thì lưu thêm inertia để vẽ biểu đồ Elbow
         if hasattr(model, "inertia_"):
-            row["inertia"] = round(float(model.inertia_), 2)
+            row["inertia"] = float(model.inertia_)
 
         records.append(row)
 
@@ -290,7 +237,7 @@ def save_tuning_results(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / filename
     df.to_csv(out_path, index=False)
-    print(f"[SAVED] Đã lưu bảng tinh chỉnh -> {out_path}")
+    print(f"[SAVED] Đã lưu bảng tinh chỉnh -> {_display_path(out_path)}")
     return out_path
 
 
@@ -300,42 +247,32 @@ def save_cluster_labels(
     labels: np.ndarray,
     output_path: Path | str = RESULTS_DIR / "labels.csv",
 ) -> Path:
-    """
-    Cập nhật cột nhãn của một thuật toán vào file clustering/results/labels.csv.
-    Giúp 3 notebook cập nhật độc lập cột 'kmeans', 'hierarchical', 'dbscan'
-    mà không ghi đè mất kết quả của nhau.
-    """
+    """Cập nhật nhãn theo mã khách, giữ nguyên các cột của thuật toán khác."""
     out_path = Path(output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    new_ids = pd.Series(customer_ids).reset_index(drop=True)
-    new_labels = pd.Series(labels, name=algo_name)
+    new_ids = pd.Series(customer_ids, dtype="string").str.strip()
+    if len(new_ids) != len(labels):
+        raise ValueError("Số nhãn phải bằng số Customer ID.")
+    new_labels = pd.Series(labels, index=pd.Index(new_ids, name=CUSTOMER_ID), name=algo_name)
 
     if out_path.exists():
-        existing_df = pd.read_csv(out_path)
-        same_length = len(existing_df) == len(new_ids)
-        same_ids = (
-            same_length
-            and "Customer ID" in existing_df.columns
-            and (
-                existing_df["Customer ID"].astype(str).values
-                == new_ids.astype(str).values
-            ).all()
-        )
-        if same_ids:
-            existing_df[algo_name] = new_labels
-            out_df = existing_df
-        else:
-            print(
-                "[THÔNG BÁO] Danh sách Customer ID thay đổi (ví dụ chuyển từ mock sang data thật) "
-                "-> tạo mới labels.csv."
+        out_df = pd.read_csv(out_path, dtype={CUSTOMER_ID: "string"})
+        out_df = out_df.set_index(out_df.pop(CUSTOMER_ID).str.strip())
+        if set(out_df.index) != set(new_labels.index):
+            raise ValueError(
+                f"Tập Customer ID đã đổi. Hãy chuyển {_display_path(out_path)} "
+                "sang một thư mục lưu kết quả cũ."
             )
-            out_df = pd.DataFrame({"Customer ID": new_ids, algo_name: new_labels})
+        out_df[algo_name] = new_labels
     else:
-        out_df = pd.DataFrame({"Customer ID": new_ids, algo_name: new_labels})
+        out_df = new_labels.to_frame()
 
-    out_df.to_csv(out_path, index=False)
-    print(f"[SAVED] Đã cập nhật cột '{algo_name}' -> {out_path}")
+    with TemporaryDirectory(dir=out_path.parent) as temp_dir:
+        temporary_path = Path(temp_dir) / out_path.name
+        out_df.to_csv(temporary_path, index_label=CUSTOMER_ID)
+        temporary_path.replace(out_path)
+    print(f"[SAVED] Đã cập nhật cột '{algo_name}' -> {_display_path(out_path)}")
     return out_path
 
 
@@ -349,5 +286,5 @@ def save_model(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / filename
     joblib.dump(model, out_path)
-    print(f"[SAVED] Đã lưu model -> {out_path}")
+    print(f"[SAVED] Đã lưu model -> {_display_path(out_path)}")
     return out_path
