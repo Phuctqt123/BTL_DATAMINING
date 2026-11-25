@@ -1,0 +1,71 @@
+{
+  "model": {
+    "algorithm": "K-Means",
+    "n_clusters": 4,
+    "label_source": "clustering/results/labels.csv",
+    "feature_source": "data/processed/customers_features.csv",
+    "assignment_note": "Cluster labels are specific to the saved K-Means model. Rebuild this mapping if the model is retrained or cluster numbering changes."
+  },
+  "population_medians": {
+    "Recency": 96.0,
+    "Frequency": 3.0,
+    "Monetary": 856.02,
+    "AvgOrderValue": 277.8683333333,
+    "UniqueProducts": 45.0,
+    "AvgBasketSize": 155.0,
+    "Tenure": 530.0,
+    "CancelRate": 0.0
+  },
+  "personas": {
+    "0": {
+      "name": "VIP",
+      "description": "Nhóm khách hàng giá trị cao, mua gần đây và thường xuyên; đóng góp phần lớn doanh thu.",
+      "behavior": "Trung vị Recency 25 ngày, Frequency 11 hóa đơn, UniqueProducts 153 sản phẩm.",
+      "spending": "Trung vị Monetary 3,987.07; nhóm chiếm 27.56% khách hàng nhưng tạo 81.63% doanh thu.",
+      "loyalty": "Cao: tần suất mua và độ rộng sản phẩm cao nhất trong bốn cụm.",
+      "churn_risk": "Thấp tương đối do lần mua gần đây; vẫn cần theo dõi trải nghiệm và dấu hiệu giảm tần suất.",
+      "marketing_action": "Duy trì ưu đãi thành viên, chăm sóc cá nhân hóa, quyền mua sớm và khuyến khích giới thiệu.",
+      "assignment_rule": "Nhận khi mô hình K-Means đã lưu trả về nhãn 0. Đặc trưng kiểm chứng: median Recency thấp hơn và median Frequency/Monetary cao hơn trung vị toàn tập."
+    },
+    "1": {
+      "name": "Tiềm năng",
+      "description": "Nhóm đông khách đã có giao dịch lặp lại nhưng giá trị và tần suất còn thấp hơn nhóm VIP; phù hợp để nuôi dưỡng tăng mua lại.",
+      "behavior": "Trung vị Recency 149 ngày, Frequency 2 hóa đơn, UniqueProducts 38.5 sản phẩm.",
+      "spending": "Trung vị Monetary 681.17; nhóm chiếm 33.87% khách hàng và 9.67% doanh thu.",
+      "loyalty": "Trung bình/thấp: đã có khách mua lặp lại, nhưng tần suất mua điển hình mới là hai hóa đơn.",
+      "churn_risk": "Trung bình: lần mua gần nhất xa hơn trung vị toàn tập nhưng chưa xa bằng nhóm Ngủ đông.",
+      "marketing_action": "Khuyến khích đơn hàng tiếp theo bằng gợi ý sản phẩm liên quan, combo phù hợp và ưu đãi có ngưỡng chi tiêu.",
+      "assignment_rule": "Nhận khi mô hình K-Means đã lưu trả về nhãn 1. Đặc trưng kiểm chứng: median Frequency dưới trung vị toàn tập, median CancelRate bằng 0 và Recency thấp hơn nhóm Cần níu kéo/Ngủ đông."
+    },
+    "2": {
+      "name": "Cần níu kéo",
+      "description": "Nhóm có mức mua và chi tiêu trung vị không thấp nhưng tín hiệu hủy đơn nổi bật và đã lâu chưa mua; cần tìm nguyên nhân và khuyến khích quay lại.",
+      "behavior": "Trung vị Recency 184.5 ngày, Frequency 3 hóa đơn, CancelRate 0.333.",
+      "spending": "Trung vị Monetary 942.57 và AvgOrderValue 311.12.",
+      "loyalty": "Không ổn định: CancelRate trung vị cao nhất trong các cụm.",
+      "churn_risk": "Cao tương đối do Recency cao và tỷ lệ hủy đơn điển hình khoảng một phần ba.",
+      "marketing_action": "Gửi khảo sát ngắn tìm nguyên nhân hủy, hỗ trợ xử lý trở ngại và ưu đãi quay lại có thời hạn.",
+      "assignment_rule": "Nhận khi mô hình K-Means đã lưu trả về nhãn 2. Đặc trưng kiểm chứng: median CancelRate cao nhất, Recency cao hơn trung vị toàn tập và Monetary median vẫn quanh/trên trung vị toàn tập."
+    },
+    "3": {
+      "name": "Ngủ đông",
+      "description": "Nhóm khách mua ít, giá trị thấp và đã lâu không phát sinh giao dịch; nên tái kích hoạt bằng chiến dịch chi phí thấp.",
+      "behavior": "Trung vị Recency 307 ngày, Frequency 1 hóa đơn, UniqueProducts 12 sản phẩm.",
+      "spending": "Trung vị Monetary 186.05; nhóm chiếm 22.54% khách hàng và 2.14% doanh thu.",
+      "loyalty": "Thấp: giao dịch điển hình chỉ có một hóa đơn.",
+      "churn_risk": "Cao: Recency cao nhất và Frequency/Monetary thấp nhất trong bốn cụm.",
+      "marketing_action": "Thử một chiến dịch tái kích hoạt chi phí thấp, ưu đãi giới hạn; dừng hoặc giảm liên hệ nếu khách không phản hồi.",
+      "assignment_rule": "Nhận khi mô hình K-Means đã lưu trả về nhãn 3. Đặc trưng kiểm chứng: median Recency cao nhất, median Frequency bằng 1 và median Monetary thấp nhất."
+    }
+  },
+  "noise": {
+    "name": "Ngoại biên DBSCAN",
+    "description": "Khách bị DBSCAN đánh dấu nhiễu; đây không phải persona thuộc mô hình K-Means.",
+    "behavior": "Trong nhãn DBSCAN hiện có, nhóm nhiễu có 345 khách (5.90%). Trung vị Frequency là 3, tương đương toàn tập, nên không thể kết luận đây chủ yếu là khách mua một lần.",
+    "spending": "Tổng Monetary khoảng 5,975,825 (xấp xỉ 35.01% doanh thu toàn tập); trung vị Monetary 1,927.30 so với 834.44 ở nhóm không nhiễu, trung vị AvgOrderValue 441.18 so với 275.44. 25.51% nhóm nhiễu nằm ở hoặc trên ngưỡng Monetary phân vị 95, so với 3.72% ở nhóm không nhiễu.",
+    "loyalty": "Không kết luận chung; cần xem từng trường hợp và lịch sử giao dịch.",
+    "churn_risk": "Không suy ra chỉ từ nhãn nhiễu; cần đánh giá riêng Recency, Frequency và lịch sử hủy.",
+    "marketing_action": "Giữ riêng để kiểm tra khách sỉ/đơn hàng đặc biệt hoặc dữ liệu bất thường; không tự động gộp vào cụm thường.",
+    "assignment_rule": "Chỉ dùng khi nhãn DBSCAN bằng -1. Không áp dụng nhãn này cho dự đoán K-Means."
+  }
+}
