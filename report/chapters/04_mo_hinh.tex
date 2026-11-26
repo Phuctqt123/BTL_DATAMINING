@@ -6,7 +6,7 @@
 
 \subsection{Thiết lập thực nghiệm và chỉ số đánh giá}
 
-Đầu vào là bảng \texttt{X\_scaled.csv} gồm $n = 5\,852$ khách hàng và 8 đặc trưng đã chuẩn hóa. Toàn bộ hàm huấn luyện, quét lưới tham số (\texttt{ParameterGrid}) và tính chỉ số nằm trong \texttt{clustering/models.py}, dùng thư viện scikit-learn~\cite{pedregosa2011}, với \texttt{random\_state = 42}. Vì không có nhãn, nhóm dùng ba chỉ số nội bộ~\cite{han2022}:
+Đầu vào là bảng \texttt{X\_scaled.csv} gồm $n = 5\,852$ khách hàng và 8 đặc trưng đã chuẩn hóa. Toàn bộ hàm huấn luyện, quét lưới tham số (\texttt{ParameterGrid}) và tính chỉ số nằm trong \path{clustering/models.py}, dùng thư viện scikit-learn~\cite{pedregosa2011}, với \texttt{random\_state = 42}. Vì không có nhãn, nhóm dùng ba chỉ số nội bộ~\cite{han2022}:
 
 \begin{itemize}[leftmargin=1.5em]
 \item \textbf{Silhouette}~\cite{rousseeuw1987} ($s \in [-1,1]$, càng cao càng tốt). Với $a_i$ là khoảng cách trung bình từ điểm $i$ tới các điểm cùng cụm và $b_i$ là khoảng cách trung bình nhỏ nhất tới một cụm khác:
@@ -77,7 +77,7 @@ $k$ & \textbf{WCSS} & \textbf{Silhouette} & \textbf{DBI} & \textbf{CHI} & \textb
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{graphics/c4_kmeans_elbow.png}
+\includegraphics[width=0.72\textwidth]{graphics/c4_kmeans_elbow.png}
 \caption{Đường cong Elbow (WCSS) và Silhouette trung bình theo $k$.}
 \label{fig:kmeans_elbow}
 \end{figure}
@@ -86,7 +86,7 @@ Biểu đồ Silhouette chi tiết tại $k = 4$ cho thấy cả bốn cụm đ�
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.78\textwidth]{graphics/c4_kmeans_silhouette.png}
+\includegraphics[width=0.6\textwidth]{graphics/c4_kmeans_silhouette.png}
 \caption{Biểu đồ Silhouette từng khách hàng của K-Means tại $k \in \{2,3,4,5\}$.}
 \label{fig:kmeans_sil}
 \end{figure}
@@ -127,7 +127,7 @@ Trên cây \texttt{ward}, nhóm chọn lát cắt theo bước nhảy độ cao 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{graphics/c4_dendrogram.png}
+\includegraphics[width=0.72\textwidth]{graphics/c4_dendrogram.png}
 \caption{Dendrogram \texttt{ward} (25 nhánh cuối) với đường cắt tại $k = 5$.}
 \label{fig:dendro}
 \end{figure}
@@ -140,7 +140,7 @@ Nhóm thử ba mức $m \in \{5, 9, 16\}$ (mặc định, $d+1$ và $2d$ với $
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.72\textwidth]{graphics/c4_kdistance.png}
+\includegraphics[width=0.56\textwidth]{graphics/c4_kdistance.png}
 \caption{Đường cong k-distance và điểm gãy cho ba mức \texttt{min\_samples}.}
 \label{fig:kdist}
 \end{figure}
@@ -165,7 +165,7 @@ Cấu hình $\varepsilon = 0,8940$, $m = 16$ giữ ổn định một cụm chí
 
 \subsection{Tổng kết}
 
-Bảng~\ref{tab:ch4_summary} tóm tắt cấu hình chốt của ba thuật toán. Nhãn của cả ba được lưu trong \texttt{clustering/results/labels.csv} để đánh giá ở Chương~\ref{sec:eval}; mô hình K-Means được lưu thành \texttt{models/kmeans.joblib} cho ứng dụng.
+Bảng~\ref{tab:ch4_summary} tóm tắt cấu hình chốt của ba thuật toán. Nhãn của cả ba được lưu trong \path{clustering/results/labels.csv} để đánh giá ở Chương~\ref{sec:eval}; mô hình K-Means được lưu thành \texttt{models/kmeans.joblib} cho ứng dụng.
 
 \begin{table}[H]
 \centering

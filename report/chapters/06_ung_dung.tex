@@ -12,7 +12,7 @@
 \centering
 \begin{tikzpicture}[
     node distance=0.3cm,
-    box/.style={draw, rounded corners, align=center, minimum height=1.25cm, text width=2.2cm, font=\footnotesize}]
+    box/.style={draw, rounded corners, align=center, minimum height=1.25cm, text width=2.65cm, font=\footnotesize}]
 \node[box] (a) {Tệp giao dịch\\ CSV / Excel};
 \node[box, right=of a] (b) {Làm sạch\\ + 8 đặc trưng\\ \texttt{preprocess.py}};
 \node[box, right=of b] (c) {log1p +\\ \texttt{scaler.joblib}\\ (không fit lại)};
@@ -48,14 +48,14 @@ Giao diện gồm năm thẻ:
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{graphics/c6_app_overview.jpg}
+\includegraphics[width=0.8\textwidth]{graphics/c6_app_overview.jpg}
 \caption{Thẻ Tổng quan của ứng dụng.}
 \label{fig:app_overview}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{graphics/c6_app_strategy.jpg}
+\includegraphics[width=0.8\textwidth]{graphics/c6_app_strategy.jpg}
 \caption{Thẻ Chiến lược marketing với mẫu email cho phân khúc Cần níu kéo.}
 \label{fig:app_strategy}
 \end{figure}
@@ -89,7 +89,7 @@ Nhóm kiểm tra ứng dụng và toàn bộ quy trình theo các bước sau:
 \item Chạy lại tiền xử lý từ tệp Excel gốc cho đúng 776\,579 dòng mua hợp lệ và 5\,852 khách; fit lại ba mô hình cho nhãn trùng khớp với \texttt{labels.csv} (ARI = 1 với cả ba thuật toán).
 \item Chạy lại toàn bộ notebook của phần mô hình hóa và đánh giá: không lỗi, các bảng kết quả trùng khớp, chỉ khác cột thời gian chạy. Bộ kiểm thử \texttt{test\_personas.py} đạt 5/5.
 \item Tải lên bảng đặc trưng của 500 khách đã biết: phân khúc dự đoán trùng 100\% với nhãn huấn luyện, xác nhận scaler và mô hình được dùng lại đúng.
-\item Tải lên tệp mẫu \texttt{app/sample/giao\_dich\_mau.csv} (19\,172 dòng giao dịch của 300 khách, từ 06/2011 đến 12/2011): ứng dụng làm sạch và phân khúc được 293 khách thành 160 Tiềm năng, 57 Ngủ đông, 44 Cần níu kéo và 32 VIP. Bảy khách còn lại chỉ có giao dịch hủy nên không có hồ sơ RFM.
+\item Tải lên tệp mẫu \path{app/sample/giao_dich_mau.csv} (19\,172 dòng giao dịch của 300 khách, từ 06/2011 đến 12/2011): ứng dụng làm sạch và phân khúc được 293 khách thành 160 Tiềm năng, 57 Ngủ đông, 44 Cần níu kéo và 32 VIP. Bảy khách còn lại chỉ có giao dịch hủy nên không có hồ sơ RFM.
 \end{itemize}
 
 \end{document}

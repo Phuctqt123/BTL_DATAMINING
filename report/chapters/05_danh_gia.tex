@@ -32,7 +32,7 @@ Adjusted Rand Index giữa K-Means và Hierarchical là 0,453, tức hai mô hì
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{graphics/c5_pca.png}
+\includegraphics[width=0.92\textwidth]{graphics/c5_pca.png}
 \caption{Hình chiếu PCA 2D của nhãn ba thuật toán.}
 \label{fig:pca}
 \end{figure}
@@ -41,7 +41,8 @@ Adjusted Rand Index giữa K-Means và Hierarchical là 0,453, tức hai mô hì
 
 \begin{table}[H]
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}rrrrrrrr@{}}
 \toprule
 \textbf{Cụm} & \textbf{Số khách} & \textbf{\% khách} & \textbf{\% doanh thu} & \textbf{Recency} & \textbf{Frequency} & \textbf{Monetary} & \textbf{CancelRate} \\
@@ -60,7 +61,7 @@ Radar Chart (Hình~\ref{fig:radar}) dùng trung bình từng đặc trưng theo 
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.62\textwidth]{graphics/c5_radar.png}
+\includegraphics[width=0.5\textwidth]{graphics/c5_radar.png}
 \caption{Radar Chart so sánh hồ sơ đặc trưng bốn cụm K-Means (chuẩn hóa min--max).}
 \label{fig:radar}
 \end{figure}
@@ -74,7 +75,7 @@ Radar Chart (Hình~\ref{fig:radar}) dùng trung bình từng đặc trưng theo 
 \item \textbf{Cụm 3 -- Ngủ đông.} Trung vị 307 ngày không mua, chỉ 1 hóa đơn và chi tiêu thấp nhất; chiếm 22,54\% khách nhưng chỉ 2,14\% doanh thu. Phù hợp với chiến dịch tái kích hoạt chi phí thấp và dừng liên hệ nếu không có phản hồi.
 \end{itemize}
 
-Ánh xạ cụm sang persona được lưu trong \texttt{evaluation/results/personas.json} và cung cấp qua hàm \texttt{get\_persona}. Ánh xạ này gắn với đúng mô hình K-Means đã lưu, vì số thứ tự cụm không mang ý nghĩa thứ bậc và có thể đổi nếu huấn luyện lại.
+Ánh xạ cụm sang persona được lưu trong \path{evaluation/results/personas.json} và cung cấp qua hàm \texttt{get\_persona}. Ánh xạ này gắn với đúng mô hình K-Means đã lưu, vì số thứ tự cụm không mang ý nghĩa thứ bậc và có thể đổi nếu huấn luyện lại.
 
 \subsection{Phân tích ngoại biên DBSCAN}
 

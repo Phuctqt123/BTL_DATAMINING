@@ -10,7 +10,7 @@ Mục tiêu của giai đoạn này là chuyển dữ liệu giao dịch thành 
 
 \subsection{Làm sạch dữ liệu giao dịch}
 
-Các phép lọc được thực hiện theo thứ tự cố định trong \texttt{preprocessing/preprocess.py}; số dòng sau mỗi bước được ghi lại trong Bảng~\ref{tab:cleaning}. Hóa đơn hủy được tách ra một tập riêng để tính tỷ lệ hủy, không bị xóa khỏi quy trình.
+Các phép lọc được thực hiện theo thứ tự cố định trong \path{preprocessing/preprocess.py}; số dòng sau mỗi bước được ghi lại trong Bảng~\ref{tab:cleaning}. Hóa đơn hủy được tách ra một tập riêng để tính tỷ lệ hủy, không bị xóa khỏi quy trình.
 
 \begin{table}[H]
 \centering
@@ -93,7 +93,7 @@ CancelRate & 1,31 & 1,31 & 0 & 0,80 \\
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.85\textwidth]{graphics/c3_skewness.png}
+\includegraphics[width=0.66\textwidth]{graphics/c3_skewness.png}
 \caption{Độ lệch của tám đặc trưng trước và sau biến đổi.}
 \label{fig:skew}
 \end{figure}
@@ -114,7 +114,7 @@ Hệ số tương quan Spearman trên các đặc trưng sau log cho thấy khô
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.6\textwidth]{graphics/c3_corr_spearman.png}
+\includegraphics[width=0.46\textwidth]{graphics/c3_corr_spearman.png}
 \caption{Ma trận tương quan Spearman của tám đặc trưng sau biến đổi log.}
 \label{fig:corr}
 \end{figure}
