@@ -1,0 +1,186 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{MÔ HÌNH HÓA VÀ TINH CHỈNH SIÊU THAM SỐ}
+\label{sec:model}
+
+\subsection{Thiết lập thực nghiệm và chỉ số đánh giá}
+
+Đầu vào là bảng \texttt{X\_scaled.csv} gồm $n = 5\,852$ khách hàng và 8 đặc trưng đã chuẩn hóa. Toàn bộ hàm huấn luyện, quét lưới tham số (\texttt{ParameterGrid}) và tính chỉ số nằm trong \texttt{clustering/models.py}, dùng thư viện scikit-learn~\cite{pedregosa2011}, với \texttt{random\_state = 42}. Vì không có nhãn, nhóm dùng ba chỉ số nội bộ~\cite{han2022}:
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Silhouette}~\cite{rousseeuw1987} ($s \in [-1,1]$, càng cao càng tốt). Với $a_i$ là khoảng cách trung bình từ điểm $i$ tới các điểm cùng cụm và $b_i$ là khoảng cách trung bình nhỏ nhất tới một cụm khác:
+\begin{equation}
+s_i = \frac{b_i - a_i}{\max(a_i, b_i)}.
+\end{equation}
+\item \textbf{Davies--Bouldin}~\cite{davies1979} (càng thấp càng tốt), với $\sigma_i$ là độ phân tán của cụm $i$ quanh tâm $\mu_i$:
+\begin{equation}
+\mathrm{DBI} = \frac{1}{k}\sum_{i=1}^{k} \max_{j \ne i} \frac{\sigma_i + \sigma_j}{\lVert \mu_i - \mu_j \rVert_2}.
+\end{equation}
+\item \textbf{Calinski--Harabasz}~\cite{calinski1974} (càng cao càng tốt), tỷ số giữa phương sai giữa các cụm và trong cụm:
+\begin{equation}
+\mathrm{CHI}(k) = \frac{\mathrm{BCSS}/(k-1)}{\mathrm{WCSS}/(n-k)}.
+\end{equation}
+\end{itemize}
+Ngoài ba chỉ số, nhóm luôn theo dõi kích thước cụm nhỏ nhất và lớn nhất để loại các cấu hình chỉ tách vài điểm cực trị thành một cụm riêng.
+
+\subsection{K-Means}
+
+\subsubsection{Nguyên lý}
+
+K-Means~\cite{lloyd1982} chia $n$ điểm thành $k$ cụm $C_1,\ldots,C_k$ với tâm $\mu_1,\ldots,\mu_k$ sao cho tổng bình phương khoảng cách nội cụm nhỏ nhất:
+\begin{equation}
+\mathrm{WCSS} = \sum_{j=1}^{k} \sum_{x_i \in C_j} \lVert x_i - \mu_j \rVert_2^2.
+\label{eq:wcss}
+\end{equation}
+Vì tâm cụm là trung bình cộng, K-Means nhạy với chênh lệch thang đo và các điểm cực trị; đây là lý do Chương~\ref{sec:preprocess} phải log-transform và dùng RobustScaler trước. Để giảm phụ thuộc vào vị trí khởi tạo, nhóm dùng \texttt{k-means++}~\cite{arthur2007} và chạy \texttt{n\_init = 10} lần, giữ nghiệm có WCSS thấp nhất (Thuật toán~\ref{alg:kmeans}).
+
+\begin{algorithm}[H]
+\caption{K-Means (Lloyd kết hợp \texttt{k-means++})}
+\label{alg:kmeans}
+\KwIn{Dữ liệu chuẩn hóa $X$, số cụm $k$, số lần khởi tạo $R = 10$.}
+\KwOut{Tâm cụm $\{\mu_j^*\}$ và nhãn $\{c_i^*\}$.}
+$\mathrm{WCSS}_{\min} \leftarrow +\infty$\;
+\For{$r = 1, \ldots, R$}{
+    Khởi tạo $k$ tâm bằng \texttt{k-means++}\;
+    \Repeat{nhãn không đổi hoặc đạt số vòng lặp tối đa}{
+        $c_i \leftarrow \arg\min_{j} \lVert x_i - \mu_j \rVert_2^2$ với mọi $i$\;
+        $\mu_j \leftarrow \frac{1}{|C_j|}\sum_{x_i \in C_j} x_i$ với mọi $j$\;
+    }
+    \lIf{$\mathrm{WCSS}_r < \mathrm{WCSS}_{\min}$}{lưu nghiệm hiện tại}
+}
+\end{algorithm}
+
+\subsubsection{Chọn số cụm $k$}
+
+Nhóm chạy $k = 2,\ldots,10$ (Bảng~\ref{tab:kmeans_tuning}, Hình~\ref{fig:kmeans_elbow}). Điểm khuỷu được ước lượng tự động bằng cách đưa hai trục về $[0,1]$ và lấy điểm xa dây nối hai đầu đường cong nhất, cho \texttt{elbow\_k} $= 5$. Trong vùng lân cận $[4,6]$, $k = 4$ có Silhouette cao nhất (0,2177) và Davies--Bouldin thấp hơn $k=3$. Tuy $k = 2$ có Silhouette cao nhất toàn dải (0,2591), chia khách thành hai nhóm là quá thô cho mục tiêu marketing.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}rrrrrrr@{}}
+\toprule
+$k$ & \textbf{WCSS} & \textbf{Silhouette} & \textbf{DBI} & \textbf{CHI} & \textbf{Min size} & \textbf{Max size} \\
+\midrule
+2 & 17\,544,64 & 0,2591 & 1,4092 & 2\,512,70 & 2\,795 & 3\,057 \\
+3 & 15\,168,35 & 0,1896 & 1,6340 & 1\,911,10 & 1\,398 & 2\,633 \\
+\textbf{4*} & \textbf{13\,116,35} & \textbf{0,2177} & \textbf{1,4011} & \textbf{1\,778,08} & \textbf{938} & \textbf{1\,982} \\
+5$^\dagger$ & 11\,781,06 & 0,2068 & 1,3655 & 1\,650,14 & 841 & 1\,462 \\
+6 & 10\,876,80 & 0,1916 & 1,3609 & 1\,526,82 & 732 & 1\,471 \\
+8 & 9\,519,65 & 0,1903 & 1,3600 & 1\,364,65 & 257 & 1\,030 \\
+10 & 8\,587,16 & 0,1887 & 1,3836 & 1\,246,74 & 197 & 961 \\
+\bottomrule
+\end{tabular}
+\caption{Kết quả tinh chỉnh K-Means ($^\dagger$điểm khuỷu; *mức được chọn). Bảng đầy đủ $k=2..10$ lưu trong \texttt{tuning\_kmeans.csv}.}
+\label{tab:kmeans_tuning}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{graphics/c4_kmeans_elbow.png}
+\caption{Đường cong Elbow (WCSS) và Silhouette trung bình theo $k$.}
+\label{fig:kmeans_elbow}
+\end{figure}
+
+Biểu đồ Silhouette chi tiết tại $k = 4$ cho thấy cả bốn cụm đều vượt đường trung bình, phần giá trị âm rất ít và kích thước cụm cân đối (938; 1\,319; 1\,613; 1\,982 khách), trong khi $k = 5$ xuất hiện một cụm có đuôi âm tới $-0,10$ (Hình~\ref{fig:kmeans_sil}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{graphics/c4_kmeans_silhouette.png}
+\caption{Biểu đồ Silhouette từng khách hàng của K-Means tại $k \in \{2,3,4,5\}$.}
+\label{fig:kmeans_sil}
+\end{figure}
+
+\subsubsection{Kiểm tra ngoài mẫu và độ ổn định}
+
+Vì mô hình sẽ dùng để gán cụm cho khách mới trong ứng dụng, nhóm kiểm chứng 5-fold: ở mỗi lượt, log-transform, RobustScaler và K-Means chỉ được \texttt{fit} trên 4 fold rồi tính lỗi gán tâm trung bình trên fold còn lại. Tại $k = 4$, lỗi ngoài mẫu là $2,2518 \pm 0,0896$, gần như bằng WCSS trung bình mỗi khách trên toàn tập ($13\,116,35/5\,852 = 2,2413$, chênh dưới 0,5\%), nên không có dấu hiệu quá khớp. Thay đổi cấu hình khởi tạo (\texttt{n\_init} = 5, 10, 20 hoặc \texttt{init="random"}) cho Adjusted Rand Index~\cite{hubert1985} so với nghiệm chuẩn từ 0,9988 đến 1,0000.
+
+Để kiểm tra năm biến hành vi có thực sự giúp ích, nhóm huấn luyện thêm K-Means $k = 4$ chỉ trên ba biến RFM. Khi đo trên không gian 8 biến, nhãn của mô hình 8 biến đạt Silhouette 0,2177 so với 0,1215 của mô hình 3 biến, tức các biến hành vi mang thêm thông tin phân tách mà RFM thuần không có.
+
+\subsection{Hierarchical Clustering}
+
+Agglomerative Clustering bắt đầu với mỗi khách là một cụm rồi lần lượt gộp hai cụm gần nhau nhất, tạo thành cây phân cấp (dendrogram). Cây không phụ thuộc khởi tạo ngẫu nhiên nhưng cần ma trận khoảng cách giữa mọi cặp điểm, tốn bộ nhớ $O(n^2)$ và thời gian $O(n^2)$ đến $O(n^3)$. Khoảng cách giữa hai cụm phụ thuộc kiểu \emph{linkage}: \texttt{single} (khoảng cách nhỏ nhất), \texttt{complete} (lớn nhất), \texttt{average} (trung bình) và \texttt{ward}~\cite{ward1963}, chọn cặp gộp làm tổng bình phương sai số nội cụm tăng ít nhất:
+\begin{equation}
+\Delta(A,B) = \frac{|A|\,|B|}{|A|+|B|} \lVert \mu_A - \mu_B \rVert_2^2.
+\end{equation}
+
+Nhóm dựng một cây cho mỗi linkage rồi cắt tại $k = 2,\ldots,8$. Một lát cắt được coi là hợp lệ khi cụm nhỏ nhất có ít nhất 1\% số khách ($\ge 58$). Bảng~\ref{tab:linkage} cho thấy \texttt{average} và \texttt{single} có Silhouette rất cao nhưng thực chất suy biến: một cụm chứa gần như toàn bộ khách, cụm còn lại chỉ có 1 khách. Chỉ \texttt{ward} hợp lệ ở mọi mức cắt.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Linkage} & \textbf{Lát cắt hợp lệ} & \textbf{Min size ($k\ge3$)} & \textbf{Max size ($k\ge3$)} & \textbf{Silhouette tốt nhất} \\
+\midrule
+\textbf{ward} & \textbf{7/7} & \textbf{64} & \textbf{2\,409} & 0,2118 \\
+complete & 1/7 & 5 & 4\,975 & 0,2425 \\
+average & 0/7 & 1 & 5\,845 & 0,6433 \\
+single & 0/7 & 1 & 5\,850 & 0,5433 \\
+\bottomrule
+\end{tabular}
+\caption{So sánh bốn kiểu linkage trên 5\,852 khách hàng ($k = 2,\ldots,8$).}
+\label{tab:linkage}
+\end{table}
+
+Trên cây \texttt{ward}, nhóm chọn lát cắt theo bước nhảy độ cao gộp $\Delta h(k) = h_{\text{upper}}(k) - h_{\text{lower}}(k)$. Tại $k = 5$, bước nhảy lớn nhất trong vùng $k \ge 3$ ($\Delta h = 18,02$, tỷ lệ độ cao $1,50\times$), Silhouette đạt 0,1761 và năm cụm có kích thước cân đối (568 đến 1\,841 khách). Cắt sâu hơn xuống $k = 6$ thì bước nhảy chỉ còn 1,92 và xuất hiện cụm 64 khách. Lát cắt \texttt{ward}, $k = 5$ được giữ làm phương án đối chứng (Hình~\ref{fig:dendro}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{graphics/c4_dendrogram.png}
+\caption{Dendrogram \texttt{ward} (25 nhánh cuối) với đường cắt tại $k = 5$.}
+\label{fig:dendro}
+\end{figure}
+
+\subsection{DBSCAN phát hiện ngoại biên}
+
+DBSCAN~\cite{ester1996} gom các điểm nằm trong vùng mật độ cao mà không cần biết trước số cụm. Với bán kính $\varepsilon$ và ngưỡng $m$ (\texttt{min\_samples}), vùng lân cận của $x$ là $N_\varepsilon(x) = \{y : \lVert x-y \rVert_2 \le \varepsilon\}$. Điểm có $|N_\varepsilon(x)| \ge m$ là \emph{điểm lõi}; điểm không phải lõi nhưng nằm cạnh một điểm lõi là \emph{điểm biên}; còn lại là \emph{nhiễu} (nhãn $-1$). Dữ liệu khách hàng là một đám mây liên tục, thưa dần ở phần đuôi, nên mục tiêu của DBSCAN ở đây là tách nhóm ngoại biên chứ không ép ra bốn cụm.
+
+Nhóm thử ba mức $m \in \{5, 9, 16\}$ (mặc định, $d+1$ và $2d$ với $d = 8$). Với mỗi $m$, bán kính được gợi ý tại điểm gãy của đường cong k-distance (Hình~\ref{fig:kdist}): 0,6684; 0,8149 và 0,8940. Quanh mỗi điểm gãy, nhóm quét thêm các hệ số 0,85 đến 1,15 (15 cấu hình) và xếp hạng theo độ ổn định số cụm khi dịch $\varepsilon$ $\pm 10\%$ và tỷ lệ nhiễu nằm trong khoảng 1--10\% (Bảng~\ref{tab:dbscan}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{graphics/c4_kdistance.png}
+\caption{Đường cong k-distance và điểm gãy cho ba mức \texttt{min\_samples}.}
+\label{fig:kdist}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}rrccc@{}}
+\toprule
+$m$ & $\varepsilon_{\text{knee}}$ & \textbf{Số cụm ($0,9 \to 1,0 \to 1,1$)} & \textbf{Nhiễu tại $1,0\times$} & \textbf{Đạt 2 tiêu chí} \\
+\midrule
+5 & 0,6684 & $9 \to 1 \to 2$ & 11,55\% (676) & Không \\
+9 & 0,8149 & $3 \to 1 \to 1$ & 6,53\% (382) & Không \\
+\textbf{16*} & \textbf{0,8940} & $\mathbf{1 \to 1 \to 1}$ & \textbf{5,90\% (345)} & \textbf{Đạt} \\
+\bottomrule
+\end{tabular}
+\caption{Xếp hạng ba ứng viên DBSCAN tại điểm gãy (*cấu hình được chọn).}
+\label{tab:dbscan}
+\end{table}
+
+Cấu hình $\varepsilon = 0,8940$, $m = 16$ giữ ổn định một cụm chính trên cả năm mức bán kính đã quét và tách 345 khách (5,90\%) làm ngoại biên. Với $m = 5$ số cụm dao động mạnh và nhiễu vượt 10\%; với $m = 9$, giảm nhẹ bán kính đã làm xuất hiện cụm phụ chỉ 8 khách.
+
+\subsection{Tổng kết}
+
+Bảng~\ref{tab:ch4_summary} tóm tắt cấu hình chốt của ba thuật toán. Nhãn của cả ba được lưu trong \texttt{clustering/results/labels.csv} để đánh giá ở Chương~\ref{sec:eval}; mô hình K-Means được lưu thành \texttt{models/kmeans.joblib} cho ứng dụng.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l l X l@{}}
+\toprule
+\textbf{Thuật toán} & \textbf{Tham số chọn} & \textbf{Kết quả} & \textbf{Vai trò} \\
+\midrule
+K-Means & $k=4$, \texttt{k-means++} & 4 cụm (938--1\,982 khách), $\bar{s} = 0,2177$ & Phân khúc chính \\
+Hierarchical & \texttt{ward}, $k=5$ & 5 cụm (568--1\,841 khách), $\bar{s} = 0,1761$ & Đối chứng \\
+DBSCAN & $\varepsilon=0,894$, $m=16$ & 1 cụm chính + 345 ngoại biên (5,90\%) & Phát hiện ngoại biên \\
+\bottomrule
+\end{tabularx}
+\caption{Cấu hình chốt của ba thuật toán gom cụm.}
+\label{tab:ch4_summary}
+\end{table}
+
+\end{document}

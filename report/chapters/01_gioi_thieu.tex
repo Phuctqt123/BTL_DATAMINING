@@ -1,0 +1,71 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{GIỚI THIỆU ĐỀ TÀI}
+\label{sec:intro}
+
+\subsection{Bối cảnh và động lực}
+
+Với doanh nghiệp bán lẻ trực tuyến, chi phí giữ chân một khách hàng cũ thường thấp hơn nhiều so với chi phí thu hút khách hàng mới, và một phần nhỏ khách hàng thường tạo ra phần lớn doanh thu. Nếu gửi cùng một chương trình khuyến mãi cho toàn bộ tập khách, doanh nghiệp vừa lãng phí ngân sách cho những khách ít khả năng phản hồi, vừa bỏ sót cơ hội chăm sóc riêng nhóm khách giá trị cao. Vì vậy, bài toán đặt ra là chia khách hàng thành các nhóm có hành vi mua tương đồng để thiết kế chiến dịch phù hợp cho từng nhóm.
+
+Mô hình RFM (\emph{Recency}, \emph{Frequency}, \emph{Monetary}) là cách tiếp cận phổ biến trong marketing cơ sở dữ liệu~\cite{hughes1994}: khách hàng được mô tả bằng thời gian kể từ lần mua gần nhất, số lần mua và tổng giá trị mua. Cách chia điểm RFM thủ công theo ngũ phân vị dễ áp dụng nhưng phụ thuộc vào ngưỡng chọn tay và chỉ dùng ba chiều. Đề tài này kết hợp RFM với năm đặc trưng hành vi bổ sung và dùng các thuật toán gom cụm để nhóm khách hàng tự động, theo hướng đã được áp dụng trên chính bộ dữ liệu bán lẻ của Chen và cộng sự~\cite{chen2012rfm}.
+
+\subsection{Mục tiêu đề tài}
+
+Đề tài có các mục tiêu cụ thể sau:
+\begin{itemize}[leftmargin=1.5em]
+    \item Trích xuất chỉ số RFM và đặc trưng hành vi cho từng khách hàng từ dữ liệu giao dịch thô; xử lý hóa đơn hủy, dữ liệu thiếu và phân phối lệch.
+    \item Cài đặt, tinh chỉnh và so sánh ba thuật toán gom cụm: K-Means, Hierarchical Clustering và DBSCAN.
+    \item Diễn giải các cụm thành persona khách hàng (VIP, Tiềm năng, Cần níu kéo, Ngủ đông) và phát hiện nhóm khách ngoại biên.
+    \item Xây dựng ứng dụng báo cáo phân khúc, đề xuất chiến lược khuyến mãi và email marketing cho từng nhóm, đồng thời phân khúc được dữ liệu khách hàng mới.
+\end{itemize}
+
+\subsection{Dữ liệu và phạm vi}
+
+Nhóm sử dụng bộ dữ liệu Online Retail II từ UCI Machine Learning Repository~\cite{chen2019dataset}, gồm 1\,067\,371 dòng giao dịch của một công ty bán lẻ trực tuyến tại Anh từ 01/12/2009 đến 09/12/2011. Đơn vị phân tích là khách hàng có mã định danh; các giao dịch không có \texttt{Customer ID} chỉ được dùng trong phân tích khám phá. Bài toán thuộc loại học không giám sát, nên chất lượng phân cụm được đánh giá bằng chỉ số nội bộ, độ ổn định và khả năng diễn giải kinh doanh thay vì độ chính xác so với nhãn thật.
+
+\subsection{Quy trình thực hiện}
+
+Quy trình thực hiện bám theo các giai đoạn của CRISP-DM, mỗi giai đoạn ứng với một chương của báo cáo (Hình~\ref{fig:pipeline}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.35cm,
+    box/.style={draw, rounded corners, align=center, minimum height=1.15cm, text width=2.15cm, font=\small}]
+\node[box] (a) {Dữ liệu thô\\ \& EDA\\ (Ch.~2)};
+\node[box, right=of a] (b) {Làm sạch,\\ 8 đặc trưng\\ (Ch.~3)};
+\node[box, right=of b] (c) {3 thuật toán\\ gom cụm\\ (Ch.~4)};
+\node[box, right=of c] (d) {Đánh giá,\\ persona\\ (Ch.~5)};
+\node[box, right=of d] (e) {Ứng dụng\\ Streamlit\\ (Ch.~6)};
+\draw[->, thick] (a) -- (b);
+\draw[->, thick] (b) -- (c);
+\draw[->, thick] (c) -- (d);
+\draw[->, thick] (d) -- (e);
+\end{tikzpicture}
+\caption{Quy trình thực hiện đề tài và chương tương ứng trong báo cáo.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Phân công công việc}
+
+Nhóm gồm bốn thành viên. Mỗi phần việc có thư mục mã nguồn riêng trong kho GitHub của nhóm và bàn giao kết quả cho phần kế tiếp qua các tệp có định dạng thống nhất (Bảng~\ref{tab:phancong}).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l l X l@{}}
+\toprule
+\textbf{Thành viên} & \textbf{Thư mục} & \textbf{Nội dung phụ trách} & \textbf{Chương} \\
+\midrule
+TV1 & \texttt{preprocessing/} & EDA, làm sạch, trích xuất RFM và đặc trưng hành vi, biến đổi log, RobustScaler & 2, 3 \\
+TV2 & \texttt{clustering/} & Cài đặt và tinh chỉnh K-Means, Hierarchical, DBSCAN & 4 \\
+TV3 & \texttt{evaluation/} & So sánh mô hình, hồ sơ cụm, Radar Chart, persona, phân tích ngoại biên & 5 \\
+TV4 (nhóm trưởng) & \texttt{app/} & Ứng dụng Streamlit, chiến lược marketing, tích hợp mã nguồn, tổng hợp báo cáo & 1, 6, 7 \\
+\bottomrule
+\end{tabularx}
+\caption{Phân công công việc trong nhóm.}
+\label{tab:phancong}
+\end{table}
+
+\end{document}

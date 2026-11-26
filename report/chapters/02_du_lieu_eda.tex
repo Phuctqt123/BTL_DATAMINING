@@ -1,0 +1,90 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{MÔ TẢ DỮ LIỆU VÀ PHÂN TÍCH KHÁM PHÁ}
+\label{sec:eda}
+
+\subsection{Nguồn dữ liệu và các trường}
+
+Bộ dữ liệu Online Retail II~\cite{chen2019dataset} ghi nhận hoạt động của một doanh nghiệp bán lẻ trực tuyến tại Vương quốc Anh, chủ yếu bán quà tặng cho cả khách lẻ và khách sỉ. Tệp \texttt{online\_retail\_II.xlsx} gồm hai sheet \texttt{Year 2009-2010} (525\,461 dòng) và \texttt{Year 2010-2011} (541\,910 dòng); hai sheet được gộp trước mọi bước thống kê. Mỗi dòng là \emph{một mặt hàng trong một hóa đơn}, vì vậy số dòng không phải là số đơn hàng hay số khách hàng. Ý nghĩa tám trường dữ liệu được trình bày trong Bảng~\ref{tab:fields}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Trường} & \textbf{Ý nghĩa} \\
+\midrule
+\texttt{Invoice} & Mã hóa đơn; mã bắt đầu bằng \texttt{C} là giao dịch hủy hoặc trả hàng \\
+\texttt{StockCode} & Mã mặt hàng trên từng dòng giao dịch \\
+\texttt{Description} & Mô tả mặt hàng \\
+\texttt{Quantity} & Số lượng sản phẩm của dòng giao dịch \\
+\texttt{InvoiceDate} & Ngày và giờ lập hóa đơn \\
+\texttt{Price} & Đơn giá mặt hàng (GBP) \\
+\texttt{Customer ID} & Mã định danh khách hàng \\
+\texttt{Country} & Quốc gia của khách hàng \\
+\bottomrule
+\end{tabularx}
+\caption{Các trường trong bộ dữ liệu Online Retail II.}
+\label{tab:fields}
+\end{table}
+
+Dữ liệu thô có 1\,067\,371 dòng, 53\,628 hóa đơn, 5\,942 khách hàng có mã định danh, 5\,304 mã hàng và 43 quốc gia, trải dài từ 01/12/2009 07:45 đến 09/12/2011 12:50.
+
+\subsection{Giá trị thiếu và bất thường}
+
+Chỉ hai trường có giá trị thiếu: \texttt{Customer ID} thiếu 243\,007 dòng (22,77\%) và \texttt{Description} thiếu 4\,382 dòng (0,41\%) (Hình~\ref{fig:missing}). Bài toán cần một hồ sơ cho mỗi khách hàng, nên các dòng thiếu mã khách không thể gán đáng tin cậy cho ai và bị loại khi xây dựng đặc trưng. Trường \texttt{Description} không tham gia tính RFM nên được giữ nguyên, không điền giá trị.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{graphics/c2_missing.png}
+\caption{Tỷ lệ giá trị thiếu theo trường trong dữ liệu thô.}
+\label{fig:missing}
+\end{figure}
+
+Bên cạnh giá trị thiếu, dữ liệu còn nhiều dạng bất thường (Bảng~\ref{tab:anomaly}). Các nhóm này có thể giao nhau, chẳng hạn một dòng hủy thường cũng có \texttt{Quantity} âm, nên không thể cộng các con số để suy ra số dòng bị loại; số dòng thực tế sau từng bước được ghi riêng ở Chương~\ref{sec:preprocess}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Loại bất thường} & \textbf{Số lượng} \\
+\midrule
+\texttt{Quantity} $< 0$ & 22\,950 dòng \\
+\texttt{Price} $= 0$ & 6\,202 dòng \\
+\texttt{Price} $< 0$ & 5 dòng \\
+\texttt{Invoice} bắt đầu bằng \texttt{C} & 19\,494 dòng (8\,292 hóa đơn) \\
+Dòng trùng lặp hoàn toàn & 34\,335 dòng \\
+\texttt{StockCode} không phải sản phẩm (\texttt{POST}, \texttt{M}, \texttt{BANK CHARGES},\ldots) & 5\,930 dòng \\
+\bottomrule
+\end{tabular}
+\caption{Các trường hợp bất thường trong dữ liệu thô.}
+\label{tab:anomaly}
+\end{table}
+
+\subsection{Phân bố theo quốc gia và thời gian}
+
+Vương quốc Anh chiếm áp đảo với 981\,330 dòng (khoảng 92\%), tiếp theo là EIRE (17\,866), Đức (17\,624), Pháp (14\,330) và Hà Lan (5\,140) (Hình~\ref{fig:countries}). Do phần lớn khách ở cùng một thị trường, nhóm không đưa quốc gia vào đặc trưng phân cụm mà chỉ dùng để mô tả.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.66\textwidth]{graphics/c2_countries.png}
+\caption{Số dòng giao dịch thô ở năm quốc gia dẫn đầu.}
+\label{fig:countries}
+\end{figure}
+
+Chuỗi thời gian gồm 25 tháng. Sau khi chỉ giữ giao dịch mua hợp lệ, tổng giá trị mua toàn kỳ là 17\,068\,582,72 GBP; tháng cao nhất là 11/2010 với 1\,155\,978,39 GBP. Doanh số tăng rõ vào quý IV của cả hai năm (Hình~\ref{fig:monthly}), phù hợp với đặc thù hàng quà tặng mùa lễ. Tháng 12/2009 và 12/2011 không có đủ dữ liệu cả tháng nên không dùng để kết luận xu hướng.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{graphics/c2_monthly_sales.png}
+\caption{Tổng giá trị mua hợp lệ theo tháng.}
+\label{fig:monthly}
+\end{figure}
+
+\subsection{Nhận xét}
+
+Dữ liệu được ghi theo dòng sản phẩm chứ chưa theo khách hàng. Các dòng thiếu mã khách, hóa đơn hủy, số lượng hoặc đơn giá không hợp lệ, dòng trùng và mã phi sản phẩm đều có thể làm sai Frequency, Monetary và tỷ lệ hủy. Vì vậy, trước khi phân cụm cần làm sạch nhánh mua, tách riêng nhánh hủy và tổng hợp mỗi khách hàng thành một dòng đặc trưng.
+
+\end{document}

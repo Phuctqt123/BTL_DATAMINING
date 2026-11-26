@@ -1,0 +1,122 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{TIỀN XỬ LÝ VÀ TRÍCH XUẤT ĐẶC TRƯNG}
+\label{sec:preprocess}
+
+\subsection{Quy ước tính toán}
+
+Mục tiêu của giai đoạn này là chuyển dữ liệu giao dịch thành bảng đặc trưng trong đó mỗi \texttt{Customer ID} xuất hiện đúng một lần. Ngày mốc được chọn là 10/12/2011, tức 0 giờ của ngày ngay sau giao dịch cuối cùng. Recency và Tenure được tính theo ngày lịch, nên khách mua ngày 09/12/2011 có Recency bằng 1 bất kể giờ mua.
+
+\subsection{Làm sạch dữ liệu giao dịch}
+
+Các phép lọc được thực hiện theo thứ tự cố định trong \texttt{preprocessing/preprocess.py}; số dòng sau mỗi bước được ghi lại trong Bảng~\ref{tab:cleaning}. Hóa đơn hủy được tách ra một tập riêng để tính tỷ lệ hủy, không bị xóa khỏi quy trình.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}X rrr@{}}
+\toprule
+\textbf{Bước xử lý} & \textbf{Trước} & \textbf{Loại/tách} & \textbf{Còn lại} \\
+\midrule
+Gộp hai sheet & 1\,067\,371 & 0 & 1\,067\,371 \\
+Loại dòng thiếu \texttt{Customer ID} & 1\,067\,371 & 243\,007 & 824\,364 \\
+Loại dòng trùng (so khớp 8 trường gốc) & 824\,364 & 26\,479 & 797\,885 \\
+Loại mã không phải sản phẩm & 797\,885 & 3\,660 & 794\,225 \\
+Tách hóa đơn hủy sang tập riêng & 794\,225 & 17\,586 & 776\,639 \\
+Giữ dòng có \texttt{Quantity} $>0$ và \texttt{Price} $>0$ & 776\,639 & 60 & 776\,579 \\
+\bottomrule
+\end{tabularx}
+\caption{Nhật ký số dòng sau từng bước làm sạch.}
+\label{tab:cleaning}
+\end{table}
+
+Mã phi sản phẩm được loại theo danh sách tường minh (\texttt{POST}, \texttt{M}, \texttt{BANK CHARGES}, \texttt{AMAZONFEE}, mã quà tặng \texttt{GIFT\_}\ldots) thay vì yêu cầu mã hàng chỉ gồm chữ số, vì nhiều mã hàng hợp lệ có chữ, ví dụ \texttt{85123A}. Kết quả còn 776\,579 dòng mua hợp lệ và 17\,586 dòng hủy (7\,282 hóa đơn). Có 23 khách chỉ xuất hiện trong nhánh hủy, không có giao dịch mua nên không tạo được hồ sơ RFM.
+
+\subsection{Trích xuất RFM và đặc trưng hành vi}
+
+Đặc trưng được tổng hợp theo \texttt{Customer ID}. Ngoài ba thành phần RFM, nhóm bổ sung năm biến mô tả giá trị đơn, độ đa dạng sản phẩm, quy mô giỏ hàng, thời gian gắn bó và hành vi hủy đơn (Bảng~\ref{tab:features}).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+\textbf{Đặc trưng} & \textbf{Cách tính} \\
+\midrule
+Recency & Số ngày từ lần mua cuối đến ngày mốc \\
+Frequency & Số hóa đơn mua khác nhau \\
+Monetary & Tổng \texttt{Quantity} $\times$ \texttt{Price} của các dòng mua hợp lệ (GBP) \\
+AvgOrderValue & Monetary chia Frequency \\
+UniqueProducts & Số mã hàng khác nhau đã mua \\
+AvgBasketSize & Tổng số lượng mua chia Frequency \\
+Tenure & Số ngày từ lần mua đầu tiên đến ngày mốc \\
+CancelRate & Số hóa đơn hủy chia tổng số hóa đơn mua và hóa đơn hủy \\
+\bottomrule
+\end{tabularx}
+\caption{Định nghĩa tám đặc trưng RFM và hành vi.}
+\label{tab:features}
+\end{table}
+
+Gọi $P_i$ là tập dòng mua hợp lệ của khách $i$, $F_i$ và $C_i$ lần lượt là số hóa đơn mua và số hóa đơn hủy khác nhau, $q_j$ và $p_j$ là số lượng và đơn giá của dòng $j$:
+\begin{equation}
+\mathrm{Monetary}_i = \sum_{j \in P_i} q_j p_j, \qquad
+\mathrm{AvgBasketSize}_i = \frac{\sum_{j \in P_i} q_j}{F_i}, \qquad
+\mathrm{CancelRate}_i = \frac{C_i}{F_i + C_i}.
+\end{equation}
+Frequency và CancelRate được đếm theo hóa đơn chứ không theo dòng, để một đơn có nhiều mặt hàng không làm tăng giả tạo số lần mua hay tỷ lệ hủy. Hóa đơn hủy không bị trừ vào Monetary. Bảng đặc trưng cuối cùng có \textbf{5\,852 khách hàng $\times$ 8 đặc trưng}, không có giá trị thiếu hoặc vô cực.
+
+\subsection{Phân phối và biến đổi log}
+
+Hầu hết đặc trưng lệch phải rất mạnh: một số ít khách sỉ có giá trị lớn hơn trung vị hàng trăm lần (Bảng~\ref{tab:skew}). Nhóm áp dụng $x' = \ln(1+x)$ (\texttt{np.log1p}) cho sáu biến lệch phải. Tenure lệch trái nên log sẽ làm độ lệch tăng; CancelRate bị chặn trong $[0,1]$; hai biến này được giữ nguyên thang gốc.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Đặc trưng} & \textbf{Skew trước} & \textbf{Skew sau} & \textbf{Trung vị} & \textbf{Max} \\
+\midrule
+Recency & 0,89 & $-0,45$ & 96 & 739 \\
+Frequency & 12,04 & 1,00 & 3 & 373 \\
+Monetary & 25,33 & 0,27 & 856,02 & 580\,987,04 \\
+AvgOrderValue & 53,38 & 0,06 & 277,87 & 84\,236,25 \\
+UniqueProducts & 6,22 & $-0,26$ & 45 & 2\,546 \\
+AvgBasketSize & 45,04 & $-0,25$ & 155 & 87\,167 \\
+Tenure & $-0,62$ & $-0,62$ & 530 & 739 \\
+CancelRate & 1,31 & 1,31 & 0 & 0,80 \\
+\bottomrule
+\end{tabular}
+\caption{Độ lệch (skewness) trước và sau biến đổi log, kèm trung vị và giá trị lớn nhất.}
+\label{tab:skew}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{graphics/c3_skewness.png}
+\caption{Độ lệch của tám đặc trưng trước và sau biến đổi.}
+\label{fig:skew}
+\end{figure}
+
+Các khách có giá trị cực lớn không bị loại, vì đó có thể là khách sỉ thật và là đối tượng cần DBSCAN phát hiện ở Chương~\ref{sec:model}.
+
+\subsection{Chuẩn hóa bằng RobustScaler}
+
+Sau log, các đặc trưng được chuẩn hóa bằng \texttt{RobustScaler}:
+\begin{equation}
+z = \frac{x - \mathrm{median}(x)}{Q_3(x) - Q_1(x)}.
+\end{equation}
+Khác với \texttt{StandardScaler} dùng trung bình và độ lệch chuẩn, hay \texttt{MinMaxScaler} dùng giá trị nhỏ nhất và lớn nhất, RobustScaler dùng trung vị và khoảng tứ phân vị nên ít bị các khách cực trị chi phối. Scaler chỉ được \texttt{fit} một lần trên tập xây dựng mô hình và lưu thành \texttt{models/scaler.joblib}; khi phân khúc dữ liệu mới, ứng dụng dùng lại đúng scaler này thay vì \texttt{fit} lại, để khách mới được đặt vào cùng hệ quy chiếu với các cụm đã học.
+
+\subsection{Kiểm tra tương quan}
+
+Hệ số tương quan Spearman trên các đặc trưng sau log cho thấy không có cặp nào đạt ngưỡng $|\rho| \ge 0,90$ (Hình~\ref{fig:corr}). Một số biến có quan hệ về công thức, như AvgOrderValue tính từ Monetary và Frequency, nhưng vẫn mang thông tin riêng về giá trị mỗi đơn. Nhóm giữ đủ tám đặc trưng; Chương~\ref{sec:model} kiểm chứng lại lựa chọn này bằng thí nghiệm so sánh với mô hình chỉ dùng ba biến RFM.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{graphics/c3_corr_spearman.png}
+\caption{Ma trận tương quan Spearman của tám đặc trưng sau biến đổi log.}
+\label{fig:corr}
+\end{figure}
+
+\end{document}

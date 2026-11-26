@@ -1,0 +1,83 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{ĐÁNH GIÁ MÔ HÌNH VÀ PHÂN TÍCH PHÂN KHÚC}
+\label{sec:eval}
+
+\subsection{Phương pháp đánh giá}
+
+Do không có nhãn phân khúc thật, ba mô hình được so sánh bằng chỉ số nội bộ trên cùng bộ đặc trưng đã chuẩn hóa. Không có một ngưỡng chỉ số nào đủ để kết luận phân cụm là ``đúng'', nên kết quả được xem cùng với kích thước cụm, độ ổn định và khả năng diễn giải kinh doanh. Với DBSCAN, chỉ số được tính sau khi bỏ điểm nhiễu. Cấu hình phát hiện ngoại biên ở Chương~\ref{sec:model} chỉ còn một cụm sau khi bỏ nhiễu nên các chỉ số không xác định; để có số liệu so sánh, nhóm dùng thêm cấu hình tốt nhất trong lưới có ít nhất hai cụm ($\varepsilon = 0,735$, $m = 5$).
+
+\subsection{So sánh và lựa chọn mô hình}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+\textbf{Thuật toán} & \textbf{Cấu hình} & \textbf{Số cụm} & \textbf{Nhiễu} & \textbf{Silhouette} & \textbf{DBI} & \textbf{CHI} \\
+\midrule
+\textbf{K-Means} & $k=4$ & 4 & 0\% & 0,218 & 1,401 & 1\,778,08 \\
+Hierarchical & \texttt{ward}, $k=5$ & 5 & 0\% & 0,176 & 1,533 & 1\,388,19 \\
+DBSCAN & $\varepsilon=0,735$, $m=5$ & 2 & 7,76\% & 0,323 & 0,648 & 16,66 \\
+\bottomrule
+\end{tabular}
+\caption{So sánh ba thuật toán theo chỉ số nội bộ.}
+\label{tab:compare}
+\end{table}
+
+DBSCAN có Silhouette cao nhất nhưng tạo cụm rất mất cân bằng: cụm nhỏ nhất chỉ có 5 khách, Calinski--Harabasz rất thấp, nên không dùng được làm phân khúc kinh doanh. Giữa hai thuật toán còn lại, K-Means tốt hơn Hierarchical ở cả ba chỉ số, cho đúng bốn nhóm như mục tiêu đề tài, và gán được cụm cho khách mới bằng hàm \texttt{predict}. Nhóm chọn \textbf{K-Means $k = 4$} làm mô hình phân khúc chính; Hierarchical giữ làm đối chứng, DBSCAN dùng để đánh dấu ngoại biên.
+
+Adjusted Rand Index giữa K-Means và Hierarchical là 0,453, tức hai mô hình đồng thuận ở mức vừa phải. Chạy lại K-Means với \texttt{random\_state} 0, 1, 7, 42 và 100 cho ARI so với nhãn đã bàn giao từ 0,9952 đến 1,0000, nên nghiệm ổn định. Hình chiếu PCA hai chiều (Hình~\ref{fig:pca}) cho thấy bốn cụm K-Means tách theo dải dọc trục thứ nhất, còn điểm nhiễu DBSCAN nằm ở rìa đám mây dữ liệu. PCA làm mất thông tin ở các chiều bị lược bỏ, nên hình này chỉ dùng để quan sát, không thay thế đánh giá trên không gian tám chiều.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{graphics/c5_pca.png}
+\caption{Hình chiếu PCA 2D của nhãn ba thuật toán.}
+\label{fig:pca}
+\end{figure}
+
+\subsection{Hồ sơ các cụm K-Means}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}rrrrrrrr@{}}
+\toprule
+\textbf{Cụm} & \textbf{Số khách} & \textbf{\% khách} & \textbf{\% doanh thu} & \textbf{Recency} & \textbf{Frequency} & \textbf{Monetary} & \textbf{CancelRate} \\
+\midrule
+0 & 1\,613 & 27,56\% & 81,63\% & 25 & 11 & 3\,987,07 & 0,143 \\
+1 & 1\,982 & 33,87\% & 9,67\% & 149 & 2 & 681,17 & 0 \\
+2 & 938 & 16,03\% & 6,56\% & 184,5 & 3 & 942,57 & 0,333 \\
+3 & 1\,319 & 22,54\% & 2,14\% & 307 & 1 & 186,05 & 0 \\
+\bottomrule
+\end{tabular}
+\caption{Quy mô và trung vị các đặc trưng chính của bốn cụm K-Means.}
+\label{tab:profile}
+\end{table}
+
+Radar Chart (Hình~\ref{fig:radar}) dùng trung bình từng đặc trưng theo cụm, chuẩn hóa min--max trên từng trục để các đặc trưng có thang khác nhau so sánh được với nhau. Giá trị dùng để diễn giải persona vẫn là giá trị gốc ở Bảng~\ref{tab:profile}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\textwidth]{graphics/c5_radar.png}
+\caption{Radar Chart so sánh hồ sơ đặc trưng bốn cụm K-Means (chuẩn hóa min--max).}
+\label{fig:radar}
+\end{figure}
+
+\subsection{Persona và hàm ý kinh doanh}
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Cụm 0 -- VIP.} Mua gần đây nhất (trung vị 25 ngày), nhiều đơn nhất (11 hóa đơn) và chi tiêu cao nhất. Chiếm 27,56\% số khách nhưng tạo 81,63\% doanh thu. Cần ưu tiên giữ chân bằng chăm sóc cá nhân hóa và quyền lợi thành viên.
+\item \textbf{Cụm 1 -- Tiềm năng.} Cụm đông nhất (33,87\%), trung vị hai hóa đơn. Lần mua gần nhất (149 ngày) xa hơn trung vị toàn tập (96 ngày), nên đây không phải nhóm ``mới mua gần đây''. Nhóm được gọi là tiềm năng vì giá trị mỗi đơn (307 GBP) và số lượng mỗi đơn (181) đều cao hơn trung vị toàn tập (278 GBP và 155), lại không có lần hủy nào; điểm yếu duy nhất là mua thưa. Hướng khai thác là tăng tần suất mua bằng gợi ý sản phẩm và ưu đãi cho đơn kế tiếp.
+\item \textbf{Cụm 2 -- Cần níu kéo.} Trung vị 184,5 ngày chưa quay lại, 3 hóa đơn và tỷ lệ hủy 0,333, cao nhất trong các cụm. Nên tìm hiểu nguyên nhân hủy và thử chiến dịch quay lại có thời hạn thay vì chỉ tăng mức giảm giá.
+\item \textbf{Cụm 3 -- Ngủ đông.} Trung vị 307 ngày không mua, chỉ 1 hóa đơn và chi tiêu thấp nhất; chiếm 22,54\% khách nhưng chỉ 2,14\% doanh thu. Phù hợp với chiến dịch tái kích hoạt chi phí thấp và dừng liên hệ nếu không có phản hồi.
+\end{itemize}
+
+Ánh xạ cụm sang persona được lưu trong \texttt{evaluation/results/personas.json} và cung cấp qua hàm \texttt{get\_persona}. Ánh xạ này gắn với đúng mô hình K-Means đã lưu, vì số thứ tự cụm không mang ý nghĩa thứ bậc và có thể đổi nếu huấn luyện lại.
+
+\subsection{Phân tích ngoại biên DBSCAN}
+
+Nhóm nhiễu gồm 345 khách (5,90\%) nhưng tổng Monetary khoảng 5\,975\,825 GBP, xấp xỉ 35\% doanh thu. Trung vị Monetary của nhóm này là 1\,927,30 so với 834,44 ở nhóm còn lại; 25,51\% khách nhiễu nằm từ phân vị 95 Monetary trở lên (so với 3,72\%), và với AvgBasketSize tỷ lệ này là 39,71\% so với 2,85\%. Trung vị Frequency của nhóm nhiễu bằng 3, giống nhóm còn lại, nên đây không chủ yếu là khách mua một lần. Kết quả nghiêng về nhóm khách có đơn hoặc giỏ hàng rất lớn, có thể là khách sỉ, nhưng chưa đủ để kết luận tất cả đều như vậy. Nhóm đề xuất giữ riêng nhóm này để xác minh trước khi đưa vào chiến dịch, không tự động gộp vào cụm gần nhất.
+
+\end{document}

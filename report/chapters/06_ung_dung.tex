@@ -1,0 +1,95 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{ỨNG DỤNG BÁO CÁO PHÂN KHÚC VÀ CHIẾN LƯỢC MARKETING}
+\label{sec:app}
+
+\subsection{Kiến trúc}
+
+Ứng dụng được xây dựng bằng Streamlit trong thư mục \texttt{app/} và không cài đặt lại bất kỳ bước xử lý nào: mọi phép biến đổi đều gọi trực tiếp mã nguồn của ba phần trước, nên kết quả trong ứng dụng luôn khớp với kết quả trong báo cáo. Luồng xử lý một tệp dữ liệu mới được mô tả ở Hình~\ref{fig:app_flow}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.3cm,
+    box/.style={draw, rounded corners, align=center, minimum height=1.25cm, text width=2.2cm, font=\footnotesize}]
+\node[box] (a) {Tệp giao dịch\\ CSV / Excel};
+\node[box, right=of a] (b) {Làm sạch\\ + 8 đặc trưng\\ \texttt{preprocess.py}};
+\node[box, right=of b] (c) {log1p +\\ \texttt{scaler.joblib}\\ (không fit lại)};
+\node[box, right=of c] (d) {\texttt{kmeans.joblib}\\ \texttt{predict}};
+\node[box, right=of d] (e) {Persona +\\ chiến lược\\ \texttt{personas.py}};
+\draw[->, thick] (a) -- (b);
+\draw[->, thick] (b) -- (c);
+\draw[->, thick] (c) -- (d);
+\draw[->, thick] (d) -- (e);
+\end{tikzpicture}
+\caption{Luồng phân khúc dữ liệu mới trong ứng dụng.}
+\label{fig:app_flow}
+\end{figure}
+
+Các thành phần chính gồm:
+\begin{itemize}[leftmargin=1.5em]
+\item \texttt{build\_artifacts.py}: huấn luyện lại K-Means $k=4$ với đúng tham số của Chương~\ref{sec:model}, kiểm tra nhãn trùng khớp hoàn toàn với \texttt{labels.csv} đã bàn giao rồi mới lưu \texttt{kmeans.joblib} và bảng phân khúc của 5\,852 khách.
+\item \texttt{segmentation.py}: nhận diện loại tệp đầu vào (giao dịch thô hoặc bảng đặc trưng) và chạy luồng ở Hình~\ref{fig:app_flow}.
+\item \texttt{strategies.py}: bảng chiến lược marketing và mẫu email cho từng persona.
+\item \texttt{streamlit\_app.py}: giao diện người dùng.
+\end{itemize}
+
+\subsection{Chức năng giao diện}
+
+Giao diện gồm năm thẻ:
+\begin{enumerate}[leftmargin=1.8em]
+\item \textbf{Tổng quan:} số khách, số phân khúc, tổng doanh thu, số khách ngoại biên; biểu đồ tỷ trọng khách và doanh thu theo phân khúc, biểu đồ phân tán Recency--Monetary (Hình~\ref{fig:app_overview}).
+\item \textbf{Hồ sơ phân khúc:} Radar Chart, bảng trung bình tám đặc trưng và mô tả chi tiết từng persona.
+\item \textbf{Chiến lược marketing:} mục tiêu, khuyến mãi đề xuất, kênh, tần suất, KPI theo dõi và mẫu email cá nhân hóa cho từng phân khúc; cho phép tải danh sách khách của phân khúc kèm nội dung chiến dịch (Hình~\ref{fig:app_strategy}).
+\item \textbf{Tra cứu khách hàng:} nhập \texttt{Customer ID} để xem phân khúc, tám đặc trưng so với trung vị toàn tập, cảnh báo nếu khách bị DBSCAN đánh dấu ngoại biên, và đề xuất hành động.
+\item \textbf{Phân khúc dữ liệu mới:} tải lên tệp giao dịch hoặc bảng đặc trưng, xem nhật ký làm sạch, phân bố phân khúc và tải kết quả về dạng CSV. Người dùng có thể giữ ngày mốc mặc định (ngày giao dịch cuối cộng một) hoặc tự chọn.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{graphics/c6_app_overview.jpg}
+\caption{Thẻ Tổng quan của ứng dụng.}
+\label{fig:app_overview}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{graphics/c6_app_strategy.jpg}
+\caption{Thẻ Chiến lược marketing với mẫu email cho phân khúc Cần níu kéo.}
+\label{fig:app_strategy}
+\end{figure}
+
+\subsection{Chiến lược marketing theo phân khúc}
+
+Chiến lược được thiết kế dựa trên đặc điểm từng persona ở Chương~\ref{sec:eval} (Bảng~\ref{tab:strategy}). Ngân sách tập trung vào nhóm VIP và Tiềm năng, vì hai nhóm này chiếm hơn 91\% doanh thu; nhóm Ngủ đông chỉ dùng kênh chi phí thấp.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l X X l@{}}
+\toprule
+\textbf{Phân khúc} & \textbf{Khuyến mãi} & \textbf{Email marketing} & \textbf{KPI} \\
+\midrule
+VIP & Thành viên hạng cao, miễn phí vận chuyển, đặt trước sản phẩm mới, quà tặng thay vì giảm giá & Thư cảm ơn cá nhân hóa, mời giới thiệu bạn bè; 2 email/tháng & Tỷ lệ giữ chân 90 ngày \\
+Tiềm năng & Voucher có ngưỡng chi tiêu cho đơn kế tiếp, combo, gợi ý mua kèm & Chuỗi 3 email gợi ý sản phẩm liên quan trong 3 tuần & Tỷ lệ mua lại trong 60 ngày \\
+Cần níu kéo & Ưu đãi quay lại có hạn 7--14 ngày, voucher khi trả lời khảo sát & Email ``lâu rồi không gặp'' kèm khảo sát lý do hủy & Tỷ lệ quay lại, tỷ lệ hủy \\
+Ngủ đông & Giảm giá sâu cho mặt hàng bán chạy dịp lễ & 1 email/tháng, dừng sau 3 lần không mở & Tỷ lệ kích hoạt lại \\
+Ngoại biên & Không đưa vào chiến dịch tự động; xác minh, nếu là khách sỉ thì áp chính sách giá sỉ & Bộ phận kinh doanh liên hệ trực tiếp & Doanh thu khách sỉ \\
+\bottomrule
+\end{tabularx}
+\caption{Chiến lược khuyến mãi và email marketing cho từng phân khúc.}
+\label{tab:strategy}
+\end{table}
+
+\subsection{Kiểm thử}
+
+Nhóm kiểm tra ứng dụng và toàn bộ quy trình theo các bước sau:
+\begin{itemize}[leftmargin=1.5em]
+\item Chạy lại tiền xử lý từ tệp Excel gốc cho đúng 776\,579 dòng mua hợp lệ và 5\,852 khách; fit lại ba mô hình cho nhãn trùng khớp với \texttt{labels.csv} (ARI = 1 với cả ba thuật toán).
+\item Chạy lại toàn bộ notebook của phần mô hình hóa và đánh giá: không lỗi, các bảng kết quả trùng khớp, chỉ khác cột thời gian chạy. Bộ kiểm thử \texttt{test\_personas.py} đạt 5/5.
+\item Tải lên bảng đặc trưng của 500 khách đã biết: phân khúc dự đoán trùng 100\% với nhãn huấn luyện, xác nhận scaler và mô hình được dùng lại đúng.
+\item Tải lên tệp mẫu \texttt{app/sample/giao\_dich\_mau.csv} (19\,172 dòng giao dịch của 300 khách, từ 06/2011 đến 12/2011): ứng dụng làm sạch và phân khúc được 293 khách thành 160 Tiềm năng, 57 Ngủ đông, 44 Cần níu kéo và 32 VIP. Bảy khách còn lại chỉ có giao dịch hủy nên không có hồ sơ RFM.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,68 @@
+\documentclass{hcmut-report}
+\usepackage{subfiles}
+\usepackage{codespace}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{gensymb,textcomp}
+\usepackage{array,longtable,multicol,multirow,tabularx}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage[export]{adjustbox}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+
+\SetAlgorithmName{Thuật toán}{thuật toán}{Danh sách thuật toán}
+\SetKwInput{KwIn}{Đầu vào}
+\SetKwInput{KwOut}{Đầu ra}
+
+% Thông tin trang bìa
+\coursename{BÁO CÁO BÀI TẬP LỚN MÔN KHAI PHÁ DỮ LIỆU (CO3029)}
+\title{PHÂN ĐOẠN KHÁCH HÀNG ĐA CHIỀU THEO MÔ HÌNH RFM KẾT HỢP HÀNH VI}
+\major{Khoa học Máy tính}
+\supervisorone{Họ tên giảng viên}
+\studentone{Bùi Đình Phúc -- 2312664 (nhóm trưởng)}
+\studenttwo{Họ tên TV1 -- MSSV}
+\studentthree{Họ tên TV2 -- MSSV}
+\studentfour{Họ tên TV3 -- MSSV}
+\reportplace{TP. Hồ Chí Minh}
+\reporttime{tháng 11 năm 2026}
+
+\AtBeginDocument{\counterwithin{lstlisting}{section}}
+
+\begin{document}
+\coverpage%
+\begingroup
+\setstretch{1}
+\tableofcontents
+\endgroup
+\clearpage
+
+\subfile{chapters/01_gioi_thieu.tex}
+\subfile{chapters/02_du_lieu_eda.tex}
+\subfile{chapters/03_tien_xu_ly.tex}
+\subfile{chapters/04_mo_hinh.tex}
+\subfile{chapters/05_danh_gia.tex}
+\subfile{chapters/06_ung_dung.tex}
+\subfile{chapters/07_ket_luan.tex}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{TÀI LIỆU THAM KHẢO}
+\renewcommand{\refname}{TÀI LIỆU THAM KHẢO}
+\begin{thebibliography}{99}
+\bibitem{chen2019dataset} D. Chen. \emph{Online Retail II} [Dataset]. UCI Machine Learning Repository, 2019. \url{https://doi.org/10.24432/C5CG6D}.
+\bibitem{chen2012rfm} D. Chen, S. L. Sain, K. Guo. Data mining for the online retail industry: A case study of RFM model-based customer segmentation using data mining. \emph{Journal of Database Marketing \& Customer Strategy Management}, 19(3):197--208, 2012.
+\bibitem{hughes1994} A. M. Hughes. \emph{Strategic Database Marketing}. Probus Publishing, 1994.
+\bibitem{han2022} J. Han, J. Pei, H. Tong. \emph{Data Mining: Concepts and Techniques}, 4th ed. Morgan Kaufmann, 2022.
+\bibitem{lloyd1982} S. Lloyd. Least squares quantization in PCM. \emph{IEEE Transactions on Information Theory}, 28(2):129--137, 1982.
+\bibitem{arthur2007} D. Arthur, S. Vassilvitskii. k-means++: The advantages of careful seeding. In \emph{Proceedings of the 18th ACM-SIAM Symposium on Discrete Algorithms}, pp. 1027--1035, 2007.
+\bibitem{ward1963} J. H. Ward. Hierarchical grouping to optimize an objective function. \emph{Journal of the American Statistical Association}, 58(301):236--244, 1963.
+\bibitem{ester1996} M. Ester, H.-P. Kriegel, J. Sander, X. Xu. A density-based algorithm for discovering clusters in large spatial databases with noise. In \emph{Proceedings of KDD-96}, pp. 226--231, 1996.
+\bibitem{rousseeuw1987} P. J. Rousseeuw. Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. \emph{Journal of Computational and Applied Mathematics}, 20:53--65, 1987.
+\bibitem{davies1979} D. L. Davies, D. W. Bouldin. A cluster separation measure. \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}, 1(2):224--227, 1979.
+\bibitem{calinski1974} T. Cali\'{n}ski, J. Harabasz. A dendrite method for cluster analysis. \emph{Communications in Statistics}, 3(1):1--27, 1974.
+\bibitem{hubert1985} L. Hubert, P. Arabie. Comparing partitions. \emph{Journal of Classification}, 2(1):193--218, 1985.
+\bibitem{pedregosa2011} F. Pedregosa et al. Scikit-learn: Machine learning in Python. \emph{Journal of Machine Learning Research}, 12:2825--2830, 2011.
+\end{thebibliography}
+
+\end{document}

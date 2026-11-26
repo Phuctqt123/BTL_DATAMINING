@@ -1,0 +1,40 @@
+\documentclass[../report.tex]{subfiles}
+\begin{document}
+\newpage
+\section{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+\label{sec:conclusion}
+
+\subsection{Kết quả đạt được}
+
+Nhóm đã hoàn thành đầy đủ bốn bước của đề tài trên bộ dữ liệu Online Retail II:
+\begin{itemize}[leftmargin=1.5em]
+\item Làm sạch hơn một triệu dòng giao dịch và xây dựng bảng 5\,852 khách hàng với tám đặc trưng RFM và hành vi; xử lý phân phối lệch bằng log-transform và RobustScaler.
+\item Cài đặt và tinh chỉnh ba thuật toán gom cụm. K-Means $k=4$ được chọn làm mô hình chính (Silhouette 0,218), ổn định với khởi tạo và không có dấu hiệu quá khớp khi kiểm chứng 5-fold; năm biến hành vi giúp tăng khả năng phân tách so với RFM thuần.
+\item Xác định bốn persona có ý nghĩa kinh doanh rõ ràng, trong đó nhóm VIP chiếm 27,6\% khách nhưng tạo 81,6\% doanh thu; DBSCAN phát hiện 345 khách ngoại biên chiếm khoảng 35\% doanh thu, nhiều khả năng là khách sỉ.
+\item Xây dựng ứng dụng Streamlit báo cáo phân khúc, đề xuất chiến lược khuyến mãi và email marketing tự động, và phân khúc được dữ liệu giao dịch mới bằng đúng pipeline đã huấn luyện.
+\end{itemize}
+
+\subsection{Hạn chế}
+
+\begin{itemize}[leftmargin=1.5em]
+\item Silhouette khoảng 0,22 cho thấy các cụm không tách biệt rõ: hành vi khách hàng thay đổi liên tục chứ không thành các nhóm rời rạc. Ranh giới giữa các phân khúc vì vậy mang tính quy ước, và khách nằm gần ranh giới có thể đổi nhóm khi dữ liệu thay đổi.
+\item Dữ liệu chỉ có hai năm (2009--2011), hơn 90\% giao dịch ở Vương quốc Anh và gần 23\% dòng không có mã khách; kết quả chưa chắc đúng với thị trường hoặc giai đoạn khác.
+\item Monetary chưa trừ giá trị hàng trả lại, nên chi tiêu của khách có tỷ lệ hủy cao có thể bị đánh giá cao hơn thực tế.
+\item Ánh xạ cụm sang persona gắn với mô hình hiện tại; khi huấn luyện lại phải kiểm tra và cập nhật thủ công.
+\item Chiến lược marketing mới ở mức đề xuất, chưa được kiểm chứng bằng thử nghiệm thực tế.
+\end{itemize}
+
+\subsection{Hướng phát triển}
+
+\begin{itemize}[leftmargin=1.5em]
+\item Thử các mô hình cho phép thuộc nhiều cụm với xác suất, như Gaussian Mixture Model, để xử lý tốt hơn các khách nằm giữa hai phân khúc.
+\item Tính đặc trưng theo cửa sổ thời gian (ví dụ mỗi quý) để theo dõi khách chuyển giữa các phân khúc, và dự đoán giá trị vòng đời khách hàng (CLV).
+\item Tự động gán lại tên persona sau mỗi lần huấn luyện dựa trên quy tắc trung vị R/F/M thay vì số thứ tự cụm.
+\item Đo hiệu quả chiến lược bằng thử nghiệm A/B giữa nhóm nhận và không nhận chiến dịch trong từng phân khúc.
+\end{itemize}
+
+\subsection{Kê khai sử dụng công cụ AI}
+
+Theo yêu cầu của học phần, nhóm kê khai việc sử dụng công cụ AI tạo sinh (Claude, Anthropic) để hỗ trợ: dựng khung thư mục và mã nguồn ban đầu, tích hợp các phần vào ứng dụng Streamlit, rà soát kết quả chạy lại và soạn thảo, ghép nối báo cáo. Việc lựa chọn phương pháp, tinh chỉnh tham số, phân tích kết quả và diễn giải persona do các thành viên thực hiện; nhóm đã kiểm tra lại toàn bộ số liệu, mã nguồn và nội dung, và chịu trách nhiệm về sản phẩm cuối cùng.
+
+\end{document}
