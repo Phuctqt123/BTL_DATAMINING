@@ -11,11 +11,11 @@ Xây giao diện báo cáo phân khúc và đề xuất chiến lược marketin
 ## Công việc
 
 ### 1. App Streamlit
-- [ ] **Tổng quan:** số khách, số phân khúc, tổng doanh thu, bảng tỷ trọng khách và doanh thu theo phân khúc
-- [ ] **Hồ sơ phân khúc:** radar chart, bảng đặc trưng trung bình, mô tả persona
-- [ ] **Chiến lược marketing:** với mỗi phân khúc đưa ra gợi ý khuyến mãi và nội dung email marketing
-- [ ] **Tra cứu khách hàng:** nhập `Customer ID`, hiện phân khúc và chiến lược gợi ý
-- [ ] **Phân khúc dữ liệu mới:** upload file CSV giao dịch, app tự xử lý (dùng hàm của TV1 + scaler), dự đoán cụm (dùng model của TV2), gán persona (dùng hàm của TV3), cho tải kết quả về
+- [X] **Tổng quan:** số khách, số phân khúc, tổng doanh thu, bảng tỷ trọng khách và doanh thu theo phân khúc
+- [X] **Hồ sơ phân khúc:** radar chart, bảng đặc trưng trung bình, mô tả persona
+- [X] **Chiến lược marketing:** với mỗi phân khúc đưa ra gợi ý khuyến mãi và nội dung email marketing
+- [X] **Tra cứu khách hàng:** nhập `Customer ID`, hiện phân khúc và chiến lược gợi ý
+- [X] **Phân khúc dữ liệu mới:** upload file CSV giao dịch, app tự xử lý (dùng hàm của TV1 + scaler), dự đoán cụm (dùng model của TV2), gán persona (dùng hàm của TV3), cho tải kết quả về
 
 Rubric yêu cầu app "có khả năng nhận dữ liệu thực tế", nên phần upload là bắt buộc.
 
@@ -30,10 +30,10 @@ Gợi ý ban đầu, chỉnh lại sau khi TV3 chốt persona:
 | Ngủ đông | Giảm giá sâu, chi phí thấp | Email kích hoạt lại, gửi thưa |
 
 ### 3. Tích hợp & quản lý repo
-- [ ] Tạo khung repo, `requirements.txt`, `.gitignore`
-- [ ] Review và merge Pull Request của các thành viên
-- [ ] Đảm bảo pipeline chạy liền mạch từ dữ liệu thô đến app trên một máy sạch
-- [ ] Viết `README.md` hướng dẫn cài đặt và chạy
+- [X] Tạo khung repo, `requirements.txt`, `.gitignore`
+- [X] Review và merge Pull Request của các thành viên
+- [X] Đảm bảo pipeline chạy liền mạch từ dữ liệu thô đến app trên một máy sạch
+- [X] Viết `README.md` hướng dẫn cài đặt và chạy
 
 ### 4. Báo cáo & slide
 - [ ] Lập mục lục báo cáo (15-25 trang) và giao khung cho mọi người từ tuần 1
@@ -60,6 +60,9 @@ Gợi ý ban đầu, chỉnh lại sau khi TV3 chốt persona:
 |---|---|
 | `app/streamlit_app.py` | App demo |
 | `app/strategies.py` | Bảng chiến lược marketing theo persona |
+| `app/segmentation.py` | Phân khúc dữ liệu mới bằng pipeline TV1 → TV2 → TV3 |
+| `app/build_artifacts.py` | Lưu `kmeans.joblib` và bảng phân khúc cho app |
+| `app/sample/giao_dich_mau.csv` | Dữ liệu mẫu để thử chức năng upload |
 | `README.md` | Hướng dẫn cài đặt, chạy |
 | `report/` | Báo cáo PDF + slide |
 

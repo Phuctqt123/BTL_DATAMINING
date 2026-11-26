@@ -17,6 +17,23 @@ Giao dịch của một cửa hàng bán lẻ online ở Anh từ 01/12/2009 đ�
 
 File dữ liệu không đưa lên repo (nặng ~45MB). Mỗi người tự tải file zip ở link trên, giải nén vào `data/raw/`.
 
+## Cài đặt và chạy
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+python -m preprocessing.download_data     # tải Online Retail II vào data/raw/
+python -m preprocessing.run_all           # TV1: làm sạch, 8 đặc trưng, X_scaled, scaler, hình EDA
+python -m app.build_artifacts             # lưu kmeans.joblib + bảng phân khúc cho app
+streamlit run app/streamlit_app.py        # mở giao diện demo
+```
+
+Các notebook trong `clustering/` và `evaluation/` chạy sau bước `run_all`. Kiểm thử: `pytest evaluation/test_personas.py`.
+
+File mẫu để thử chức năng tải dữ liệu mới trong app: `app/sample/giao_dich_mau.csv` (300 khách, 06–12/2011).
+
 ## Cấu trúc repo
 
 Mỗi thư mục là một phần việc, có file `README.md` mô tả chi tiết nhiệm vụ của người phụ trách.

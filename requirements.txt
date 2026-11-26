@@ -11,3 +11,5 @@ nbconvert>=7,<8
 ipykernel>=6.25,<8.0
 pytest>=8.0,<10.0
 lxml>=5.0,<7.0
+streamlit>=1.50,<2.0
+plotly>=5.20,<7.0
