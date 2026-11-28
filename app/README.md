@@ -1,6 +1,6 @@
 # TV4 (Trưởng nhóm) - Ứng dụng & Tổng hợp
 
-**Người phụ trách:** ... (trưởng nhóm)
+**Người phụ trách:** Bùi Đình Phúc (2312664), nhóm trưởng
 **Nhánh làm việc:** `feature/app`
 **Tương ứng:** Bước 4 của đề, Giai đoạn 4-5, rubric mục 3 (20%) và mục 4 (15%)
 

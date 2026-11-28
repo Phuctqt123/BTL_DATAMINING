@@ -1,6 +1,6 @@
 # TV3 - Đánh giá & Phân tích cụm
 
-**Người phụ trách:** ...
+**Người phụ trách:** Trương Hoàng Danh (2310423)
 **Nhánh làm việc:** `feature/evaluation`
 **Tương ứng:** Bước 3 của đề, Giai đoạn 3 (Evaluation), rubric mục 2 (30%, làm cùng TV2)
 

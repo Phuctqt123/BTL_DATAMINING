@@ -1,6 +1,6 @@
 # TV1 - Dữ liệu & Tiền xử lý
 
-**Người phụ trách:** ...
+**Người phụ trách:** Hoàng Hữu Nhân (2312419)
 **Nhánh làm việc:** `feature/preprocessing`
 **Tương ứng:** Bước 1 của đề, Giai đoạn 1-2 (Business & Data Understanding, Data Preprocessing), rubric mục 1 (20%)
 

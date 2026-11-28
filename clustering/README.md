@@ -1,6 +1,6 @@
 # TV2 - Mô hình gom cụm
 
-**Người phụ trách:** ...
+**Người phụ trách:** Nguyễn Cảnh Nguyên (2312357)
 **Nhánh làm việc:** `feature/clustering`
 **Tương ứng:** Bước 2 của đề, Giai đoạn 3 (Modeling), rubric mục 2 (30%, làm cùng TV3)
 
