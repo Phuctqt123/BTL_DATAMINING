@@ -62,24 +62,29 @@ ax2 = ax1.twinx(); ax2.spines["right"].set_visible(True)
 ax2.plot(t["n_clusters"], t["silhouette"], "-s", color=YELLOW, lw=2.5, ms=7, mec=BLACK, label="Silhouette")
 ax2.set_ylabel("Silhouette")
 ax1.axvline(4, color=YELLOW, lw=8, alpha=0.35, zorder=0)
-ax1.annotate("k = 4", xy=(4, t.loc[t.n_clusters == 4, "inertia"].item()), xytext=(5.2, 16500),
-             fontsize=14, fontweight="bold", arrowprops=dict(arrowstyle="->", color=BLACK, lw=1.5))
+ax1.set_xticks(t["n_clusters"])
+ymax = t["inertia"].max()
+ax1.set_ylim(top=ymax * 1.12)
+ax1.text(4, ymax * 1.09, "chọn k = 4", ha="center", va="center", fontsize=13, fontweight="bold",
+         bbox=dict(boxstyle="round,pad=0.3", fc=YELLOW, ec=BLACK, lw=1.2))
 lines = ax1.get_legend_handles_labels(); lines2 = ax2.get_legend_handles_labels()
-ax1.legend(lines[0] + lines2[0], lines[1] + lines2[1], frameon=False, loc="upper center")
+fig.legend(lines[0] + lines2[0], lines[1] + lines2[1], frameon=False, loc="lower center",
+           ncol=2, bbox_to_anchor=(0.5, -0.14))
 save(fig, "s_elbow.png")
 
 # 3) So sánh mô hình
 m = pd.read_csv(ROOT / "evaluation/results/model_comparison.csv")
-names = ["K-Means\nk=4", "Hierarchical\nward k=5", "DBSCAN\n(eps=0.735)"]
-fig, axes = plt.subplots(1, 3, figsize=(10, 3.6))
+names = ["K-Means\nk=4", "Hierarchical\nk=5", "DBSCAN"]
+fig, axes = plt.subplots(1, 3, figsize=(10, 3.8))
 for ax, col, title, better in zip(axes, ["Silhouette", "Davies-Bouldin", "Calinski-Harabasz"],
                                   ["Silhouette ↑", "Davies–Bouldin ↓", "Calinski–Harabasz ↑"], [1, -1, 1]):
     vals = m[col].to_numpy()
     colors = [YELLOW, LIGHT, LIGHT]
     ax.bar(range(3), vals, color=colors, edgecolor=BLACK, linewidth=1.4)
     for i, v in enumerate(vals):
-        ax.text(i, v * 1.03, f"{v:,.3f}" if v < 100 else f"{v:,.0f}", ha="center", fontsize=11, fontweight="bold")
-    ax.set_title(title, fontweight="bold"); ax.set_xticks(range(3), names, fontsize=10)
+        lab = f"{v:.2f}".replace(".", ",") if col != "Calinski-Harabasz" else f"{v:,.0f}".replace(",", ".")
+        ax.text(i, v + vals.max() * 0.03, lab, ha="center", fontsize=14, fontweight="bold")
+    ax.set_title(title, fontweight="bold", fontsize=15, pad=10); ax.set_xticks(range(3), names, fontsize=12)
     ax.set_yticks([]); ax.spines["left"].set_visible(False); ax.set_ylim(0, vals.max() * 1.2)
 fig.tight_layout()
 save(fig, "s_model_compare.png")
@@ -92,15 +97,34 @@ mean = np.log1p(mean.clip(lower=0))
 norm = (mean - mean.min()) / (mean.max() - mean.min()).replace(0, 1)
 norm["Recency"] = 1 - norm["Recency"]
 ang = np.linspace(0, 2 * np.pi, len(feats), endpoint=False).tolist(); ang += ang[:1]
-fig = plt.figure(figsize=(6.4, 6.4)); ax = plt.subplot(polar=True)
+fig = plt.figure(figsize=(7.2, 6.4)); ax = plt.subplot(polar=True)
 for p in PERSONA_ORDER:
     v = norm.loc[p].tolist(); v += v[:1]
-    ax.plot(ang, v, color=BLACK if p == "VIP" else PERSONA_COLORS[p], lw=2.2)
-    ax.fill(ang, v, color=PERSONA_COLORS[p], alpha=0.35, label=p)
-ax.set_xticks(ang[:-1], labels, fontsize=12, fontweight="bold"); ax.set_yticks([])
+    ax.plot(ang, v, color=BLACK if p == "VIP" else PERSONA_COLORS[p], lw=2.4)
+    ax.fill(ang, v, color=PERSONA_COLORS[p], alpha=0.30, label=p)
+ax.set_xticks(ang[:-1], [""] * len(labels)); ax.set_yticks([])
+ax.set_ylim(0, 1.05)
+for a, lab in zip(ang[:-1], labels):
+    c = np.cos(a)
+    ax.text(a, 1.2, lab, fontsize=14, fontweight="bold", va="center",
+            ha="center" if abs(c) < 0.3 else ("left" if c > 0 else "right"))
 ax.spines["polar"].set_color(BLACK)
-ax.legend(loc="upper right", bbox_to_anchor=(1.28, 1.1), frameon=False)
+fig.legend(loc="lower center", ncol=4, frameon=False, fontsize=13, bbox_to_anchor=(0.5, -0.04))
 save(fig, "s_radar.png")
+
+# 4b) Độ quan trọng đặc trưng: nhãn K-Means đổi bao nhiêu khi xáo trộn từng biến
+fi = pd.read_csv(ROOT / "evaluation/results/feature_importance.csv")
+vi = dict(zip(feats, labels))
+fi = fi.sort_values("kmeans_change_mean")
+fig, ax = plt.subplots(figsize=(7.6, 4.6))
+cols = [YELLOW if r >= len(fi) - 2 else LIGHT for r in range(len(fi))]
+ax.barh([vi[f] for f in fi["feature"]], fi["kmeans_change_mean"] * 100, color=cols, edgecolor=BLACK, linewidth=1.3)
+for i, v in enumerate(fi["kmeans_change_mean"] * 100):
+    ax.text(v + 0.4, i, f"{v:.0f}%", va="center", fontsize=13, fontweight="bold")
+ax.set_xlabel("% khách đổi cụm khi xáo trộn đặc trưng", fontsize=13)
+ax.tick_params(axis="y", labelsize=14); ax.set_xticks([]); ax.spines["bottom"].set_visible(False)
+ax.set_xlim(0, fi["kmeans_change_mean"].max() * 100 * 1.18)
+save(fig, "s_importance.png")
 
 # 5) Phễu làm sạch dữ liệu
 steps = [("Dữ liệu thô", 1067371), ("Có Customer ID", 824364), ("Bỏ trùng", 797885),
