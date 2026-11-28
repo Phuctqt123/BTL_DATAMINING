@@ -1,0 +1,22 @@
+|--- Monetary <= 1995.34
+|   |--- CancelRate <= 0.19
+|   |   |--- AvgOrderValue <= 175.27
+|   |   |   |--- cụm 3 - Ngủ đông
+|   |   |--- AvgOrderValue >  175.27
+|   |   |   |--- cụm 1 - Tiềm năng
+|   |--- CancelRate >  0.19
+|   |   |--- AvgOrderValue <= 127.25
+|   |   |   |--- cụm 3 - Ngủ đông
+|   |   |--- AvgOrderValue >  127.25
+|   |   |   |--- cụm 2 - Cần níu kéo
+|--- Monetary >  1995.34
+|   |--- CancelRate <= 0.37
+|   |   |--- UniqueProducts <= 56.50
+|   |   |   |--- cụm 0 - VIP
+|   |   |--- UniqueProducts >  56.50
+|   |   |   |--- cụm 0 - VIP
+|   |--- CancelRate >  0.37
+|   |   |--- Monetary <= 3419.63
+|   |   |   |--- cụm 2 - Cần níu kéo
+|   |   |--- Monetary >  3419.63
+|   |   |   |--- cụm 0 - VIP

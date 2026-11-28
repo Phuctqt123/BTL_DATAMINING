@@ -1,0 +1,9 @@
+feature,surrogate_perm_mean,surrogate_perm_std,kmeans_change_mean,kmeans_change_std,surrogate_gini_importance,rank_kmeans,rank_surrogate
+CancelRate,0.211774,0.003646,0.265858,0.00328,0.295735,1,2
+Monetary,0.308612,0.005446,0.148616,0.003596,0.386842,2,1
+AvgBasketSize,0.0,0.0,0.144651,0.00281,0.0,3,4
+AvgOrderValue,0.198923,0.004831,0.143489,0.002718,0.30474,4,3
+UniqueProducts,0.0,0.0,0.131237,0.003183,0.012683,5,4
+Frequency,0.0,0.0,0.09026,0.0033,0.0,6,4
+Recency,0.0,0.0,0.058988,0.002308,0.0,7,4
+Tenure,0.0,0.0,0.056784,0.001607,0.0,8,4

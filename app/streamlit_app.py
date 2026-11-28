@@ -5,6 +5,7 @@ Chạy từ thư mục gốc repo:
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -22,6 +23,7 @@ from app.segmentation import (  # noqa: E402
     segment_feature_table, segment_transactions,
 )
 from app.strategies import render_email, strategy_for  # noqa: E402
+from evaluation import explain_clusters as xc  # noqa: E402
 from evaluation.personas import get_persona  # noqa: E402
 from preprocessing.preprocess import FEATURE_COLUMNS as _FEATURES  # noqa: E402
 
@@ -42,6 +44,13 @@ st.set_page_config(page_title="Phân khúc khách hàng RFM", layout="wide")
 @st.cache_resource
 def get_artifacts():
     return load_artifacts()
+
+
+@st.cache_resource
+def get_surrogate():
+    """Cây đại diện (cùng cấu hình với evaluation/explain_clusters.py) và bảng đặc trưng gốc."""
+    features, _, labels = xc.load_data()
+    return xc.fit_surrogate(features, labels), features, labels
 
 
 try:
@@ -80,7 +89,7 @@ st.title("Phân khúc khách hàng theo RFM & hành vi")
 st.caption("Online Retail II (UCI) · 01/12/2009 – 09/12/2011 · K-Means k=4 trên 8 đặc trưng")
 
 tabs = st.tabs(["Tổng quan", "Hồ sơ phân khúc", "Chiến lược marketing",
-                "Tra cứu khách hàng", "Phân khúc dữ liệu mới"])
+                "Tra cứu khách hàng", "Phân khúc dữ liệu mới", "Giải thích mô hình"])
 
 # ------------------------------------------------------------------ Tổng quan
 with tabs[0]:
@@ -217,8 +226,8 @@ with tabs[4]:
                 result = segment_feature_table(raw, art)
                 st.success(f"Đã phân khúc {len(result):,} khách từ bảng đặc trưng.")
             else:
-                st.error("Không nhận ra định dạng file. Cần 8 cột giao dịch hoặc 8 cột đặc trưng.")
-                st.stop()
+                # Không dùng st.stop() để tab "Giải thích mô hình" phía sau vẫn được vẽ.
+                raise ValueError("không nhận ra định dạng file. Cần 8 cột giao dịch hoặc 8 cột đặc trưng.")
 
             result["Khuyen_mai"] = result["Persona"].map(lambda p: strategy_for(p)["khuyen_mai"][0])
             st.dataframe(fmt_summary(summary_table(result)), width="stretch")
@@ -227,3 +236,68 @@ with tabs[4]:
                                "ket_qua_phan_khuc.csv", "text/csv")
         except ValueError as exc:
             st.error(f"Dữ liệu không hợp lệ: {exc}")
+
+# ------------------------------------------------------- Giải thích mô hình
+with tabs[5]:
+    st.markdown(
+        "K-Means không cho luật phân cụm tường minh. Phần này giải thích mô hình theo hai cách: "
+        "**cây quyết định đại diện** (độ sâu 3) học lại nhãn K-Means từ 8 đặc trưng gốc, và "
+        "**độ quan trọng đặc trưng** đo bằng cách xáo trộn từng đặc trưng. "
+        "Kết quả do `python -m evaluation.explain_clusters` tạo ra.")
+    missing = [p for p in (xc.IMPORTANCE_PATH, xc.FIDELITY_PATH, xc.RULES_PATH) if not p.exists()]
+    if missing:
+        st.warning("Chưa có kết quả giải thích mô hình. Chạy `python -m evaluation.explain_clusters` trước.")
+    else:
+        fidelity = json.loads(xc.FIDELITY_PATH.read_text(encoding="utf-8"))
+        chosen = fidelity["chosen"]
+        c = st.columns(3)
+        c[0].metric("Độ trung thành (CV 5-fold)", f"{chosen['cv_mean']:.1%}",
+                    f"± {chosen['cv_std']:.1%}", delta_color="off")
+        c[1].metric("Độ trung thành (toàn bộ dữ liệu)", f"{chosen['full_data']:.1%}")
+        c[2].metric("Số luật (lá của cây)", chosen["n_leaves"])
+        st.caption("Độ trung thành là tỷ lệ khách mà cây đại diện gán cùng phân khúc với K-Means.")
+
+        imp = pd.read_csv(xc.IMPORTANCE_PATH).set_index("feature")
+        measures = {"kmeans_change_mean": "K-Means: tỷ lệ khách đổi cụm khi xáo trộn",
+                    "surrogate_perm_mean": "Cây đại diện: mức giảm độ chính xác (hoán vị)"}
+        if "surrogate_shap_mean_abs" in imp.columns:
+            measures["surrogate_shap_mean_abs"] = "Cây đại diện: trung bình |SHAP|"
+        long = (imp[list(measures)].rename(columns=measures).reset_index()
+                .melt(id_vars="feature", var_name="Thước đo", value_name="Độ quan trọng"))
+        order = imp.sort_values("kmeans_change_mean").index.tolist()
+        fig = px.bar(long, x="Độ quan trọng", y="feature", color="Thước đo", orientation="h",
+                     barmode="group", text_auto=".3f", category_orders={"feature": order[::-1]},
+                     color_discrete_sequence=["#1f6feb", "#d29922", "#2da44e"])
+        fig.update_layout(height=460, yaxis_title=None, legend_title=None,
+                          legend=dict(orientation="h", y=-0.15),
+                          title="Độ quan trọng đặc trưng (trung bình 10 lần xáo trộn)")
+        st.plotly_chart(fig, width="stretch")
+
+        left, right = st.columns(2)
+        with left:
+            st.subheader("Luật của cây đại diện")
+            st.code(xc.RULES_PATH.read_text(encoding="utf-8"), language="text")
+        with right:
+            st.subheader("Đường đi của một khách qua cây")
+            try:
+                surrogate, feat_table, km_labels = get_surrogate()
+            except FileNotFoundError as exc:
+                st.warning(f"Thiếu dữ liệu đặc trưng để dựng cây đại diện: {exc}")
+                st.stop()  # tab cuối cùng nên dừng ở đây không ảnh hưởng tab khác
+            xid = st.text_input("Customer ID cần giải thích", value=str(feat_table.index[0]),
+                                key="explain_cid").strip().removesuffix(".0")
+            if xid in feat_table.index:
+                row = feat_table.loc[xid]
+                steps = xc.decision_path(surrogate, row)
+                actual = get_persona(int(km_labels.loc[xid]))["name"]
+                st.markdown("**" + " → ".join(steps) + "**")
+                if steps[-1] == actual:
+                    st.success(f"Cây đại diện và K-Means cùng xếp khách {xid} vào nhóm {actual}.")
+                else:
+                    st.warning(f"K-Means xếp khách {xid} vào nhóm {actual}, còn cây đại diện xếp vào "
+                               f"{steps[-1]}. Luật rút gọn của cây không mô tả đúng trường hợp này; "
+                               "phân khúc chính thức vẫn theo K-Means.")
+                st.dataframe(row.rename(index=FEATURE_LABELS).to_frame("Giá trị").style.format("{:,.2f}"),
+                             width="stretch")
+            else:
+                st.warning("Không tìm thấy khách hàng này trong tập đã phân khúc.")
